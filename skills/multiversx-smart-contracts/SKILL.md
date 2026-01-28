@@ -351,6 +351,12 @@ self.tx()
     .to(&recipient)
     .single_esdt(&token_id, nonce, &amount)
     .transfer();
+
+// Send EGLD or ESDT (Unified)
+self.tx()
+    .to(&recipient)
+    .payment((token_id, nonce, amount))
+    .transfer();
 ```
 
 **CRITICAL:** You cannot send both EGLD and ESDT in the same transaction.
@@ -585,45 +591,66 @@ fn my_callback(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
 }
 ```
 
-### Token Issuance
+### Token Issuance (Modular Approach)
+
+The recommended way to handle token issuance is by importing and inheriting the `EsdtModule` from the framework (`multiversx-sc-modules`). This module provides a unified `issue_token` method that can be used to issue any type of token on MultiversX (Fungible, NonFungible, SemiFungible, Meta, Dynamic).
 
 ```rust
-#[payable("EGLD")]
-#[endpoint]
-fn issue_token(&self, token_name: ManagedBuffer, token_ticker: ManagedBuffer) {
-    let issue_cost = self.call_value().egld_value();
+#[multiversx_sc::contract]
+pub trait MyContract: multiversx_sc_modules::esdt::EsdtModule {
 
-    self.token().issue_and_set_all_roles(
-        issue_cost.clone_value(),
-        token_name,
-        token_ticker,
-        18, // decimals
-        None,
-    );
+    // Note: Only Fungible and Meta tokens have decimals
+    // Example: Issuing a Fungible Token
+    #[payable("EGLD")]
+    #[endpoint(issueFungible)]
+    fn issue_fungible(
+        &self,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        num_decimals: usize,
+    ) {
+        // Calls the inherited issue_token method from EsdtModule
+        self.issue_token(
+            token_display_name,
+            token_ticker,
+            EsdtTokenType::Fungible,
+            OptionalValue::Some(num_decimals),
+        );
+    }
+
+    // Example: Issuing an NFT
+    #[payable("EGLD")]
+    #[endpoint(issueNft)]
+    fn issue_nft(
+        &self,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+    ) {
+        self.issue_token(
+            token_display_name,
+            token_ticker,
+            EsdtTokenType::NonFungible,
+            OptionalValue::None,
+        );
+    }
 }
 ```
 
-### NFT Creation
+### Token Minting
+
+Similarly, the `EsdtModule` provides a `mint` method to create new units of a token that has already been issued by the contract.
 
 ```rust
-#[endpoint]
-fn create_nft(
-    &self,
-    name: ManagedBuffer,
-    royalties: BigUint,
-    uri: ManagedBuffer,
-    attributes: ManagedBuffer,
-) -> u64 {
-    let nonce = self.nft().nft_create(
-        BigUint::from(1u64), // amount
-        &NftAttributes {
-            name,
-            royalties,
-            uri,
-            attributes,
-        },
-    );
-    nonce
+#[multiversx_sc::contract]
+pub trait MyContract: multiversx_sc_modules::esdt::EsdtModule {
+
+    #[endpoint(mintTokens)]
+    fn mint_tokens(&self, amount: BigUint) {
+        // Mints tokens using the inherited mint method from EsdtModule.
+        // The token_id is managed by the module's storage.
+        // For fungible tokens, the nonce is 0.
+        self.mint(0, &amount);
+    }
 }
 ```
 
@@ -686,26 +713,17 @@ pub trait Crowdfunding {
     }
 
     fn send_tokens(&self, to: &ManagedAddress, amount: &BigUint) {
-        let token = self.token_identifier().get();
-        if token.is_egld() {
-            self.tx().to(to).egld(amount).transfer();
-        } else {
-            self.tx().to(to).single_esdt(
-                &token.unwrap_esdt(),
-                0,
-                amount,
-            ).transfer();
-        }
+        let token_id = self.token_identifier().get();
+        self.tx()
+            .to(to)
+            .egld_or_single_esdt(&token_id, 0, amount)
+            .transfer();
     }
 
     #[view(getCurrentFunds)]
     fn get_current_funds(&self) -> BigUint {
-        let token = self.token_identifier().get();
-        if token.is_egld() {
-            self.blockchain().get_sc_balance(&EgldOrEsdtTokenIdentifier::egld(), 0)
-        } else {
-            self.blockchain().get_sc_balance(&token, 0)
-        }
+        let token_id = self.token_identifier().get();
+        self.blockchain().get_sc_balance(&token_id, 0)
     }
 
     #[storage_mapper("target")]
