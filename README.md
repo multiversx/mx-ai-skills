@@ -1,6 +1,6 @@
 # MultiversX AI Skills (mx-ai-skills)
 
-> **Empowering AI Agents with specialized knowledge, roles, and workflows for the MultiversX ecosystem.**
+> **AI Agents with specialized knowledge, roles, and workflows for the MultiversX ecosystem.**
 
 This repository is a central hub for **MultiversX AI Expertise**. It provides a structured collection of specialized "Skills", "Global Workflows" (Roles), and "Documentation" designed to equip AI agents with the deep technical knowledge required to build, audit, and optimize on MultiversX.
 
@@ -8,7 +8,7 @@ This repository is a central hub for **MultiversX AI Expertise**. It provides a 
 
 ## Quick Install
 
-Install skills for any AI coding agent (Claude Code, Cursor, Windsurf, Codex, etc.):
+Install skills for any AI coding agent (Cursor, Windsurf, Codex, etc.):
 
 ```bash
 npx openskills install multiversx/mx-ai-skills
@@ -51,7 +51,6 @@ mx-ai-skills/
 │   ├── mvx_docs/               # Curated documentation
 │   └── GEMINI.md               # Global rules
 │
-├── CLAUDE.md                   # Claude Code workspace rules
 ├── README.md
 └── LICENSE
 ```
@@ -108,10 +107,6 @@ npx openskills install multiversx/mx-ai-skills -g
 npx openskills install multiversx/mx-ai-skills
 ```
 
-### For Claude Code
-
-Skills are automatically available after installation. You can also use the workspace rules in `CLAUDE.md`.
-
 ### For Antigravity
 
 Use the original format in `antigravity/skills/` with underscore naming:
@@ -126,7 +121,6 @@ antigravity/skills/mvx_static_analysis/SKILL.md
 git clone https://github.com/multiversx/mx-ai-skills.git .ai-skills
 
 # Copy skills to your agent's expected location
-cp -r .ai-skills/skills ~/.claude/skills/        # Claude Code
 cp -r .ai-skills/skills ~/.cursor/skills/        # Cursor
 cp -r .ai-skills/skills ~/.agent/skills/         # Generic
 ```
