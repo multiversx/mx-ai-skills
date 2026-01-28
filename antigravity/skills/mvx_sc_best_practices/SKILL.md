@@ -39,7 +39,7 @@ Storage is the most expensive resource.
 
 ### Access Control
 - Use `#[only_owner]` for admin functions.
-- For fine-grained control, implement an `AccessControl` module logic using `UnorderedSetMapper<ManagedAddress>` to store admins.
+- For fine-grained control, use the `only_admin` module from the `multiversx-sc-modules` crate. It provides a standard implementation for managing multiple admins.
 
 ## 3. Data Flow & Testing
 
