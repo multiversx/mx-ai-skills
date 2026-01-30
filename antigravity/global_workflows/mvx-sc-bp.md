@@ -13,7 +13,7 @@ Use this workflow to audit or review any smart contract implementation.
   - *Good*: `self.balance().get() + amount`.
 - [ ] **Re-entrancy**: Are storage updates (Effects) happening *before* external calls (Interactions)?
   - *Check*: Look for `self.send().direct_...` or `contract_call`. Ensure state is settled before these lines.
-- [ ] **Access Control**: Do admin endpoints have `#[only_owner]`?
+- [ ] **Access Control**: Do admin endpoints have `#[only_owner]` or `#[only_admin]`?
 
 ## 2. Gas Optimization
 
