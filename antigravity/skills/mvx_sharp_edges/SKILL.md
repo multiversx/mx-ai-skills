@@ -38,6 +38,6 @@ This skill alerts you to non-obvious behaviors, "gotchas," and platform-specific
     - Changing the storage layout of existing mappers (e.g. `struct` field order) corrupts data.
 
 ## 6. Block Info inside Views
-- **The Edge**: `get_block_timestamp()` in a `#[view]` (off-chain simulation) might return 0 or a different value than on-chain.
+- **The Edge**: `get_block_timestamp_millis()` / `get_block_timestamp_seconds()` in a `#[view]` (off-chain simulation) might return 0 or a different value than on-chain. Since Supernova (0.6s rounds), prefer `get_block_timestamp_millis()` with `TimestampMillis` for sub-second precision.
 - **The Sharp Logic**:
     - Don't rely on block info for critical off-chain view logic.

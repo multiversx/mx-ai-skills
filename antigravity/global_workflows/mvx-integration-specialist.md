@@ -102,7 +102,7 @@ const entrypoint = new DevnetEntrypoint({ url: config.devnet.apiUrl });
 ## API Gateway Best Practices
 
 1. **Don't expose nodes directly** - use API/Proxy
-2. **Cache VM queries** - 6 seconds (1 block)
+2. **Cache VM queries** - 0.6 seconds (1 round, Supernova)
 3. **Rate limiting** - protect against abuse
 4. **Health checks** - monitor node status
 

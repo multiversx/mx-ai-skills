@@ -31,7 +31,7 @@ Evaluate the quality and reliability of a MultiversX codebase based on documenta
 
 | Item | Purpose | Status |
 |------|---------|--------|
-| `mxpy.json` | Standard build configuration | [ ] Present |
+| `multiversx.json` | Standard build configuration | [ ] Present |
 | `sc-config.toml` | Contract configuration | [ ] Present |
 | `multiversx.yaml` | Additional config | [ ] Optional |
 | `snippets.sh` | Interaction scripts | [ ] Helpful |
@@ -74,14 +74,14 @@ LOW QUALITY:
 # Check for Rust unit tests
 grep -r "#\[test\]" src/
 
-# Check for Mandos/scenario tests
+# Check for scenario tests
 ls -la scenarios/
 
 # Check for integration tests
 ls -la tests/
 ```
 
-### Mandos Scenario Coverage
+### Scenario Test Coverage
 
 | Coverage Level | Indicators |
 |----------------|------------|
@@ -231,7 +231,7 @@ ls -la Cargo.lock
 ```toml
 # GOOD: Specific versions
 [dependencies.multiversx-sc]
-version = "0.54.0"
+version = "0.64.1"  # edition = "2024" recommended
 
 # BAD: Wildcard versions
 [dependencies.multiversx-sc]

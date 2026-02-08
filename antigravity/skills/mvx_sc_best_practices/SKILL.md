@@ -45,7 +45,7 @@ Storage is the most expensive resource.
 
 ### Transfer-Execute Pattern
 - When sending tokens to a contract, prefer **`MultiESDTNFTTransfer`** (built-in function) over 2 transactions (Approve + TransferFrom).
-- In the contract, use `#[payable("*")]` to accept tokens and `self.call_value().all_esdt_transfers()` to inspect them.
+- In the contract, use `#[payable]` to accept tokens and `self.call_value().all()` to inspect them.
 
 ### Testing (Mandos/Scenarios)
 - **Mandos (`.scen.json`)** are mandatory for integration testing.
@@ -64,3 +64,67 @@ Storage is the most expensive resource.
 - **Token Identifier Validation**: Always validate `token_id`. Don't assume the user sent the correct token.
 - **Gas Limit**: Be aware of the block gas limit (1.5B gas). Large loops will revert.
 - **Managed Types**: Use `ManagedBuffer`, `ManagedAddress`, `ManagedVec` instead of standard Rust `Vec`, `String` to avoid serialization overhead.
+
+## 6. Production Patterns (Advanced)
+
+### Cache-Based Gas Optimization
+Use a `Drop`-trait cache struct to batch storage reads/writes:
+
+```rust
+pub struct StorageCache<'a, C: crate::storage::StorageModule> {
+    sc_ref: &'a C,
+    pub field_a: BigUint<C::Api>,
+    pub field_b: BigUint<C::Api>,
+}
+
+impl<'a, C: crate::storage::StorageModule> StorageCache<'a, C> {
+    pub fn new(sc_ref: &'a C) -> Self {
+        StorageCache {
+            field_a: sc_ref.field_a().get(),
+            field_b: sc_ref.field_b().get(),
+            sc_ref,
+        }
+    }
+}
+
+impl<C: crate::storage::StorageModule> Drop for StorageCache<'_, C> {
+    fn drop(&mut self) {
+        self.sc_ref.field_a().set(&self.field_a);
+        self.sc_ref.field_b().set(&self.field_b);
+    }
+}
+```
+
+### Error Constants Organization
+```rust
+// errors.rs — static byte strings for gas efficiency
+pub static ERROR_NOT_ACTIVE: &[u8] = b"Not active";
+pub static ERROR_UNAUTHORIZED: &[u8] = b"Unauthorized";
+pub static ERROR_ZERO_AMOUNT: &[u8] = b"Zero amount";
+```
+
+### Event Trait Composition
+```rust
+#[multiversx_sc::module]
+pub trait EventsModule {
+    #[event("deposit")]
+    fn deposit_event(&self, #[indexed] caller: &ManagedAddress, amount: &BigUint);
+}
+```
+
+### View Endpoint Separation
+Keep all `#[view]` endpoints in a dedicated `views.rs` module for clarity.
+
+### Validation Module Pattern
+Centralize all `require!` checks in a `validation.rs` module so security rules are auditable in one place.
+
+### Cross-Contract Storage Reads
+Use `#[storage_mapper_from_address("key")]` to read other contracts' storage without async call overhead:
+
+```rust
+#[storage_mapper_from_address("reserve")]
+fn external_reserve(&self, addr: ManagedAddress, token: &TokenIdentifier)
+    -> SingleValueMapper<BigUint, ManagedAddress>;
+```
+
+Only works same-shard. Read-only. Key must match target contract exactly.

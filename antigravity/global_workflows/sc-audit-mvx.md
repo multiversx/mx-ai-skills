@@ -19,7 +19,7 @@ Phase 2: Vulnerability Analysis (MultiversX Specific)
 Async Callback Analysis:
 Reentrancy Check: Does the callback update state after triggering another async call? (Violation of Checks-Effects-Interactions).
 Callback Logic: Is the callback named [callback] or custom? Are generic callbacks handling payments correctly?
-Payment Validation: Does the callback verify #[payment_amount] and #[payment_token]?
+Payment Validation: Does the callback correctly use `self.call_value().single()` to validate payments?
 ESDT Safety:
 Mint/Burn Risks: Are mint/burn limits enforced? Can an attacker inflate supply within a localized shard?
 Transfer Guardrails: Are direct_send or multi_transfer used safely?
@@ -33,7 +33,7 @@ Zero Checks: Are denominators checked for zero?
 Rounding Errors: Are divisions performed last?
 Access Control:
 Verify #[only_owner] or custom #[only_role] annotations on administrative endpoints.
-Check #[payable("*")] vs non-payable endpoints.
+Check #[payable] vs non-payable endpoints.
 Flash Loan Resistance:
 Does the contract rely on spot prices from a DEX in the same block? (Oracle manipulation risk).
 Phase 4: Automated Scanning & Verification
@@ -58,7 +58,7 @@ Use this workflow specifically for DeFi protocols (DEX, Lending, Yield Farming) 
 
 Phase 1: Composability & Interaction Analysis
 Synchronous Interaction Risk:
-Identify all usage of execute_on_dest_context or sync_call.
+Identify all usage of `sync_call()` (or legacy `execute_on_dest_context`).
 Reentrancy Check: Can the target contract call back into the caller?
 Context Leaks: Are we sending unintended funds or permissions to the destination context?
 Flash Loan Vector Analysis:

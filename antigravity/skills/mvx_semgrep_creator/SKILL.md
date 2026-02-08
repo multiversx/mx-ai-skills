@@ -10,7 +10,7 @@ This skill guides you in writing Semgrep rules to catch MultiversX-specific patt
 ## 1. Common Patterns
 - **Unsafe Math**: `x + y` where `x` is `u64`.
 - **Floating Point**: `f64`.
-- **Endpoint without Payment Check**: `#[payable("*")]` function without `call_value()`.
+- **Endpoint without Payment Check**: `#[payable]` function without `call_value()`.
 
 ## 2. Template
 ```yaml

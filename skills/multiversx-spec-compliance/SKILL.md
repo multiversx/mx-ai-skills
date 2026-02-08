@@ -82,14 +82,16 @@ For each claim, locate the relevant code:
 // Claim C1: Min stake 1000 EGLD
 // Location: src/stake.rs:45
 
-const MIN_STAKE: u64 = 1000_000000000000000000u64;  // 1000 EGLD in wei
+const MIN_STAKE_EGLD: u64 = 1000;  // 1000 EGLD (whole units)
+const DECIMALS: u32 = 18;
 
 #[payable("EGLD")]
 #[endpoint]
 fn stake(&self) {
-    let payment = self.call_value().egld_value();
+    let payment = self.call_value().egld();
+    let min_stake_wei = BigUint::from(MIN_STAKE_EGLD) * BigUint::from(10u64).pow(DECIMALS);
     require!(
-        payment.clone_value() >= BigUint::from(MIN_STAKE),
+        *payment >= min_stake_wei,
         "Minimum stake is 1000 EGLD"  // ← Implements C1
     );
     // ...
@@ -136,9 +138,9 @@ fn calculate_apy(&self, base_rate: BigUint, boost_factor: BigUint) -> BigUint {
 ```rust
 #[endpoint]
 fn withdraw(&self) {
-    let stake_time = self.stake_timestamp(&caller).get();
-    let current_time = self.blockchain().get_block_timestamp();
-    let lock_period = self.lock_period().get();  // Check: Is this 7 days?
+    let stake_time = self.stake_timestamp(&caller).get(); // TimestampMillis
+    let current_time = self.blockchain().get_block_timestamp_millis();
+    let lock_period = self.lock_period().get();  // DurationMillis - Check: Is this 7 days?
 
     require!(
         current_time >= stake_time + lock_period,

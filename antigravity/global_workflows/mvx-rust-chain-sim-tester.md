@@ -27,7 +27,7 @@ Before starting, initialize your "Current Session State." **MANDATORY**: Re-prin
    - Use `grep_search` to identify ALL `#[endpoint]`, `#[view]`, `#[init]`, `#[event]`, `#[storage_mapper]`, and `#[multiversx_sc::module]` declarations. 
    - **MANDATORY**: Search recursively through all modules (`mod.rs`) and sub-directories to ensure 100% logic coverage.
 2. **Metadata Extraction:**
-   - Profile parameter types, return values, and `#[payable("*")]` status.
+   - Profile parameter types, return values, and `#[payable]` status.
    - Capture ALL business constraints (e.g., `require!`, `sc_panic!`) and their exact error messages.
 3. **Caching:** 
    - Check `.agent/cache/contract_schema.json`. Use it if valid; otherwise, overwrite it with the new analysis.

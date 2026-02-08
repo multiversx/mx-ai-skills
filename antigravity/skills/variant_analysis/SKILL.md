@@ -15,7 +15,7 @@ Once you find a bug (e.g., "Missing usage of `checked_add` in function A"):
 ## 2. Common MultiversX Variants
 - **Missing Payable Check**:
     - Found: One endpoint accepts payment but doesn't check `call_value()`.
-    - Variant Search: Check ALL `#[payable("*")]` endpoints.
+    - Variant Search: Check ALL `#[payable]` endpoints.
 - **Unbounded Iteration**:
     - Found: Iterating a `VecMapper` in `compute_reward`.
     - Variant Search: `grep -r "iter()"` on all mappers.

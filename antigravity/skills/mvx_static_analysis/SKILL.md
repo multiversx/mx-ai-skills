@@ -22,7 +22,7 @@ This skill guides you through static analysis of MultiversX codebases, focusing 
 
 ### Logical Patterns (Manual Review)
 - **Token ID Validation**:
-    - Search for `call_value().all_esdt_transfers()`.
+    - Search for `call_value().all()` or `call_value().single()`.
     - Verify: Is the `token_id` checked against a storage variable (e.g., `wanted_token_id`)?
 - **Callback State**:
     - Search for `#[callback]`.

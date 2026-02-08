@@ -10,7 +10,7 @@ Build, test, and deploy MultiversX smart contracts using Rust, sc-meta, and mxpy
 ## Prerequisites
 
 Tools available on the VM:
-- **Rust** (version 1.83.0+)
+- **Rust** (version 1.85.0+)
 - **sc-meta** - Smart contract meta tool
 - **mxpy** - MultiversX Python CLI for deployment
 
@@ -62,16 +62,16 @@ my-contract/
 [package]
 name = "my-contract"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "0.54.0"
+version = "0.64.0"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "0.54.0"
+version = "0.64.0"
 ```
 
 ## Basic Contract Structure
@@ -79,7 +79,7 @@ version = "0.54.0"
 ```rust
 #![no_std]
 
-use multiversx_sc::imports::*;
+multiversx_sc::imports!();
 
 #[multiversx_sc::contract]
 pub trait MyContract {
@@ -133,7 +133,7 @@ pub trait MyContract {
 
 | Annotation | Purpose |
 |------------|---------|
-| `#[payable("*")]` | Accepts any token payment |
+| `#[payable]` | Accepts any token payment (shorthand for `#[payable("*")]` since SDK v0.64.0) |
 | `#[payable("EGLD")]` | Accepts only EGLD |
 | `#[payable("TOKEN-ID")]` | Accepts specific token |
 
@@ -143,6 +143,13 @@ pub trait MyContract {
 |------------|---------|
 | `#[event("eventName")]` | Defines contract event |
 | `#[indexed]` | Marks event field as searchable topic |
+
+### Callback Annotations
+
+| Annotation | Purpose |
+|------------|---------|
+| `#[callback]` | Callback for legacy async calls |
+| `#[promises_callback]` | Callback for promise-based async calls (used with `register_promise()`) |
 
 ## Storage Mappers
 
@@ -255,6 +262,115 @@ self.nft().nft_add_quantity(nonce, amount);
 self.nft().get_all_token_data(nonce);
 ```
 
+### WhitelistMapper
+Non-iterable O(1) membership check. Lighter than SetMapper when iteration is not needed.
+
+```rust
+#[storage_mapper("allowedTokens")]
+fn allowed_tokens(&self) -> WhitelistMapper<TokenId>;
+
+// Usage
+self.allowed_tokens().add(&token_id);
+self.allowed_tokens().contains(&token_id); // O(1)
+self.allowed_tokens().require_whitelisted(&token_id); // panics if missing
+self.allowed_tokens().remove(&token_id);
+```
+
+### BiDiMapper
+Bidirectional mapping — two-way lookups between keys and values (both must be unique).
+
+```rust
+#[storage_mapper("idToAddress")]
+fn id_to_address(&self) -> BiDiMapper<u64, ManagedAddress>;
+
+// Usage
+self.id_to_address().insert(1u64, address.clone());
+let addr = self.id_to_address().get_value(&1u64);
+let id = self.id_to_address().get_id(&address);
+self.id_to_address().contains_id(&1u64);
+self.id_to_address().remove_by_id(&1u64);
+```
+
+### UniqueIdMapper
+Manages a pool of unique IDs for random or sequential assignment.
+
+```rust
+#[storage_mapper("nftIds")]
+fn nft_ids(&self) -> UniqueIdMapper<Self::Api>;
+
+// Usage
+self.nft_ids().set_initial_len(1000); // IDs 1..=1000
+let id = self.nft_ids().swap_remove(index); // pop random ID
+self.nft_ids().len(); // remaining IDs
+```
+
+### OrderedBinaryTreeMapper
+Self-balancing binary search tree for ordered on-chain data.
+
+```rust
+#[storage_mapper("orderBook")]
+fn order_book(&self) -> OrderedBinaryTreeMapper<Self::Api, u64>;
+```
+
+### QueueMapper
+FIFO queue with push-back and pop-front.
+
+```rust
+#[storage_mapper("pending")]
+fn pending(&self) -> QueueMapper<ManagedAddress>;
+
+// Usage
+self.pending().push_back(address);
+let next = self.pending().pop_front(); // Option
+self.pending().len();
+```
+
+### AddressToIdMapper
+Bidirectional mapping between addresses and auto-incrementing `u64` IDs. Gas-efficient for contracts that track many users by numeric ID.
+
+```rust
+#[storage_mapper("users")]
+fn users(&self) -> AddressToIdMapper;
+
+// Usage
+let id: u64 = self.users().get_or_create_id(&caller); // auto-assigns next ID
+let addr: ManagedAddress = self.users().get_address(id);
+self.users().contains(&caller); // O(1) check
+```
+
+### UserMapper
+Similar to AddressToIdMapper but designed specifically for user management with count tracking.
+
+```rust
+#[storage_mapper("user")]
+fn user_mapper(&self) -> UserMapper;
+
+// Usage
+let user_id = self.user_mapper().get_or_create_user(&address);
+let user_count = self.user_mapper().get_user_count();
+let address = self.user_mapper().get_user_address(user_id);
+```
+
+### MapStorageMapper
+Map where values are themselves storage mappers (nested storage). Use when each key needs its own complex storage structure.
+
+```rust
+#[storage_mapper("vaults")]
+fn vaults(&self) -> MapStorageMapper<ManagedAddress, SingleValueMapper<BigUint>>;
+```
+
+### TimelockMapper
+Value with a time-lock — stores a current and future value with unlock timestamp. Value transitions automatically when block time passes the unlock point.
+
+```rust
+#[storage_mapper("admin")]
+fn admin(&self) -> TimelockMapper<ManagedAddress>;
+
+// Usage — schedule a change with delay
+self.admin().update_and_lock(new_admin, unlock_timestamp);
+let current = self.admin().get(); // returns current until unlock, then future
+```
+
 ## Data Types
 
 ### Core Types
@@ -265,9 +381,12 @@ self.nft().get_all_token_data(nonce);
 | `BigInt` | Signed arbitrary-precision integer |
 | `ManagedBuffer` | Byte array (strings, raw data) |
 | `ManagedAddress` | 32-byte address |
-| `TokenIdentifier` | Token ID (e.g., "EGLD", "TOKEN-abc123") |
-| `EgldOrEsdtTokenIdentifier` | Either EGLD or ESDT token ID |
-| `EsdtTokenPayment` | Token ID + nonce + amount |
+| `EsdtTokenIdentifier` | ESDT token ID (e.g., "TOKEN-abc123") |
+| `TokenId` | Unified token identifier for both EGLD and ESDT (EGLD represented as `EGLD-000000`) |
+| `Payment` | Unified payment: `TokenId` + nonce + `NonZeroBigUint` amount |
+| `NonZeroBigUint` | `BigUint` guaranteed to be non-zero at construction time |
+| `EgldOrEsdtTokenIdentifier` | Legacy: Either EGLD or ESDT token ID (prefer `TokenId`) |
+| `EsdtTokenPayment` | Legacy: Token ID + nonce + amount (prefer `Payment`) |
 
 ### Creating Values
 
@@ -283,10 +402,76 @@ let buffer = ManagedBuffer::from("hello");
 let caller = self.blockchain().get_caller();
 
 // Token identifier
-let token = TokenIdentifier::from("TOKEN-abc123");
+let token = EsdtTokenIdentifier::from("TOKEN-abc123");
+
+// Unified token identifier (EGLD or ESDT)
+let token_id = TokenId::from("EGLD-000000"); // EGLD
+let token_id = TokenId::from("TOKEN-abc123"); // ESDT
+
+// NonZeroBigUint
+let nz_amount = NonZeroBigUint::new_or_panic(BigUint::from(1000u64));
+```
+
+## Payment Types: `Payment` vs `EgldOrEsdtTokenPayment`
+
+| Aspect | `Payment<M>` (v0.64+) | `EgldOrEsdtTokenPayment<M>` (Legacy) |
+|---|---|---|
+| Token ID | `TokenId` (EGLD = `EGLD-000000`) | `EgldOrEsdtTokenIdentifier` |
+| Amount | `NonZeroBigUint` (zero rejected) | `BigUint` (zero allowed) |
+| Status | Preferred for new code | Widely used in production |
+
+```rust
+// New (v0.64+): Payment with TokenId + NonZeroBigUint
+let payment: Payment<Self::Api> = self.call_value().single();
+// payment.token_identifier is TokenId, payment.amount is NonZeroBigUint
+
+// Legacy: EgldOrEsdtTokenPayment with BigUint
+let legacy = self.call_value().egld_or_single_esdt();
+// legacy.token_identifier is EgldOrEsdtTokenIdentifier, legacy.amount is BigUint
 ```
 
 ## Payment Handling
+
+### Bad
+```rust
+// DON'T: Use BigUint for payment amounts — allows zero-value transfers
+let amount: BigUint = self.call_value().egld_value().clone_value();
+let payment = EsdtTokenPayment::new(token, 0, amount); // Legacy type, no zero check
+```
+
+### Good
+```rust
+// DO: Use NonZeroBigUint and Payment — zero is rejected at the type level
+let payment = self.call_value().single(); // Returns Payment with NonZeroBigUint
+// payment.amount is NonZeroBigUint — guaranteed non-zero
+```
+
+### Bad
+```rust
+// DON'T: Use legacy EgldOrEsdtTokenIdentifier
+let token: EgldOrEsdtTokenIdentifier = self.call_value().egld_or_single_esdt().token_identifier;
+```
+
+### Good
+```rust
+// DO: Use unified TokenId — handles both EGLD and ESDT uniformly
+let token: TokenId = self.call_value().single().token_identifier;
+// EGLD is represented as "EGLD-000000"
+```
+
+### Bad
+```rust
+// DON'T: Use legacy send() API for cross-contract calls
+self.send().direct_esdt(&recipient, &token, 0, &amount);
+self.send_raw().direct_egld_execute(&to, &amount, 0, &ManagedBuffer::new());
+```
+
+### Good
+```rust
+// DO: Use the Tx builder API for all transfers and cross-contract calls
+self.tx().to(&recipient).payment(payment).transfer();
+self.tx().to(&addr).typed(proxy::Proxy).some_endpoint(arg).sync_call();
+```
 
 ### Receiving EGLD
 
@@ -294,46 +479,57 @@ let token = TokenIdentifier::from("TOKEN-abc123");
 #[payable("EGLD")]
 #[endpoint]
 fn deposit_egld(&self) {
-    let payment = self.call_value().egld_value();
-    let amount = payment.clone_value();
-    // process payment...
+    let payment = self.call_value().egld();
+    // payment is a BigUint (EGLD amount)
 }
 ```
 
-### Receiving Any Single Token
+### Receiving Any Single Payment (EGLD or ESDT, unified)
 
 ```rust
-#[payable("*")]
+#[payable]
 #[endpoint]
 fn deposit(&self) {
-    let payment = self.call_value().single_esdt();
-    let token_id = payment.token_identifier;
-    let nonce = payment.token_nonce;
-    let amount = payment.amount;
+    let payment = self.call_value().single();
+    // payment.token_identifier : TokenId
+    // payment.token_nonce : u64
+    // payment.amount : NonZeroBigUint (guaranteed non-zero)
 }
 ```
 
-### Receiving EGLD or Single ESDT
+### Receiving Multiple Payments
 
 ```rust
-#[payable("*")]
-#[endpoint]
-fn flexible_deposit(&self) {
-    let payment = self.call_value().egld_or_single_esdt();
-    // Returns EgldOrEsdtTokenPayment
-}
-```
-
-### Receiving Multiple Tokens
-
-```rust
-#[payable("*")]
+#[payable]
 #[endpoint]
 fn multi_deposit(&self) {
-    let payments = self.call_value().all_esdt_transfers();
+    let payments = self.call_value().all();
+    // Returns ManagedRef<PaymentVec> — unified EGLD + ESDT payments
     for payment in payments.iter() {
-        // process each payment
+        // payment is a Payment
     }
+}
+```
+
+### Receiving Exact N Payments
+
+```rust
+#[payable]
+#[endpoint]
+fn dual_deposit(&self) {
+    let [token_a, token_b] = self.call_value().array();
+    // Exactly 2 payments, crashes otherwise
+}
+```
+
+### Optional Single Payment
+
+```rust
+#[payable]
+#[endpoint]
+fn optional_deposit(&self) {
+    let maybe_payment = self.call_value().single_optional();
+    // Returns Option<Ref<Payment>> — zero or one payment
 }
 ```
 
@@ -343,23 +539,31 @@ fn multi_deposit(&self) {
 // Send EGLD
 self.tx()
     .to(&recipient)
-    .egld(amount)
+    .egld(&amount)
     .transfer();
 
-// Send ESDT
+// Send a Payment (requires NonZeroBigUint)
+if let Some(amount_nz) = amount.into_non_zero() {
+    self.tx()
+        .to(&recipient)
+        .payment(Payment::new(token_id, nonce, amount_nz))
+        .transfer();
+}
+
+// Send multiple payments
 self.tx()
     .to(&recipient)
-    .single_esdt(&token_id, nonce, &amount)
+    .payment(&payments)
     .transfer();
 
-// Send EGLD or ESDT (Unified)
+// Transfer only if non-empty
 self.tx()
     .to(&recipient)
-    .payment((token_id, nonce, amount))
-    .transfer();
+    .egld(&amount)
+    .transfer_if_not_empty();
 ```
 
-**CRITICAL:** You cannot send both EGLD and ESDT in the same transaction.
+**Note:** Since SDK v0.55.0, EGLD and ESDT can be sent together in the same multi-transfer transaction.
 
 ## Events
 
@@ -368,7 +572,7 @@ self.tx()
 fn deposit_event(
     &self,
     #[indexed] caller: &ManagedAddress,
-    #[indexed] token: &TokenIdentifier,
+    #[indexed] token: &TokenId,
     amount: &BigUint,
 );
 
@@ -565,6 +769,34 @@ fn call_other(&self, other_address: ManagedAddress, value: BigUint) {
 }
 ```
 
+### Retrieving Back-Transfers from Sync Calls
+
+When a called contract sends tokens back (e.g., DEX swap returns), capture them with `ReturnsBackTransfers`:
+
+```rust
+#[endpoint]
+fn swap_and_store(&self, dex: ManagedAddress, token_in: TokenId, amount: NonZeroBigUint) {
+    let back_transfers = self.tx()
+        .to(&dex)
+        .typed(dex_proxy::DexProxy)
+        .swap(token_in, amount)
+        .returns(ReturnsBackTransfersReset) // Reset avoids stale accumulation
+        .sync_call();
+
+    let payments = back_transfers.into_payment_vec();
+    for payment in &payments {
+        self.received_tokens(&payment.token_identifier)
+            .update(|bal| *bal += payment.amount.as_big_uint());
+    }
+}
+```
+
+**Key rules:**
+- Use `ReturnsBackTransfersReset` (not `ReturnsBackTransfers`) when making multiple sync calls in one endpoint — back-transfers accumulate otherwise.
+- Use `ReturnsBackTransfersEGLD` when you only need the EGLD amount.
+- Use `ReturnsBackTransfersSingleESDT` when expecting exactly one ESDT token back.
+- Call `.into_payment_vec()` to get `PaymentVec` with v0.64 `Payment` items (`TokenId` + `NonZeroBigUint`).
+
 ### Async Calls with Callbacks
 
 ```rust
@@ -587,6 +819,35 @@ fn my_callback(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
         ManagedAsyncCallResult::Err(err) => {
             // Handle error
         }
+    }
+}
+```
+
+### Promises with BackTransfers
+
+For cross-shard calls that return tokens, use promises + callback:
+
+```rust
+#[endpoint]
+fn cross_shard_swap(&self, dex: ManagedAddress, token: EgldOrEsdtTokenIdentifier, nonce: u64, amount: BigUint) {
+    let gas_limit = self.blockchain().get_gas_left() - 20_000_000;
+    self.tx()
+        .to(&dex)
+        .typed(dex_proxy::DexProxy)
+        .swap(token, nonce, amount)
+        .gas(gas_limit)
+        .callback(self.callbacks().swap_callback())
+        .gas_for_callback(10_000_000)
+        .register_promise();
+}
+
+#[promises_callback]
+fn swap_callback(&self) {
+    let back_transfers = self.blockchain().get_back_transfers();
+    let payments = back_transfers.into_payment_vec();
+    for payment in &payments {
+        self.received_tokens(&payment.token_identifier)
+            .update(|bal| *bal += payment.amount.as_big_uint());
     }
 }
 ```
@@ -660,81 +921,60 @@ pub trait MyContract: multiversx_sc_modules::esdt::EsdtModule {
 
 ```rust
 #![no_std]
-
-use multiversx_sc::imports::*;
+use multiversx_sc::{chain_core::types::TimestampSeconds, imports::*};
 
 #[multiversx_sc::contract]
 pub trait Crowdfunding {
     #[init]
-    fn init(&self, target: BigUint, deadline: u64, token_id: EgldOrEsdtTokenIdentifier) {
+    fn init(&self, target: BigUint, deadline: TimestampSeconds, token_id: TokenId) {
         self.target().set(target);
         self.deadline().set(deadline);
-        self.token_identifier().set(token_id);
+        require!(token_id.is_valid(), "Invalid token provided");
+        self.cf_token_identifier().set(token_id);
     }
 
-    #[payable("*")]
+    #[payable]
     #[endpoint]
     fn fund(&self) {
-        require!(
-            self.blockchain().get_block_timestamp() < self.deadline().get(),
-            "Funding period ended"
-        );
-
-        let payment = self.call_value().egld_or_single_esdt();
-        require!(
-            payment.token_identifier == self.token_identifier().get(),
-            "Wrong token"
-        );
-
-        let caller = self.blockchain().get_caller();
-        self.deposit(&caller).update(|deposit| *deposit += payment.amount);
+        require!(self.blockchain().get_block_timestamp_millis() < self.deadline().get(), "Funding period ended");
+        let payment = self.call_value().single();
+        require!(payment.token_identifier == self.cf_token_identifier().get(), "Wrong token");
+        self.deposit(&self.blockchain().get_caller())
+            .update(|deposit| *deposit += payment.amount.as_big_uint());
     }
 
     #[endpoint]
     fn claim(&self) {
-        require!(
-            self.blockchain().get_block_timestamp() >= self.deadline().get(),
-            "Funding period not ended"
-        );
-
+        require!(self.blockchain().get_block_timestamp_millis() >= self.deadline().get(), "Funding period not ended");
         let caller = self.blockchain().get_caller();
-        let deposit = self.deposit(&caller).get();
+        let token_id = self.cf_token_identifier().get();
 
         if self.get_current_funds() >= self.target().get() {
-            // Target reached - owner claims
             require!(caller == self.blockchain().get_owner_address(), "Not owner");
-            // Transfer funds to owner...
+            if let Some(bal) = self.get_current_funds().into_non_zero() {
+                self.tx().to(&caller).payment(Payment::new(token_id, 0, bal)).transfer();
+            }
         } else {
-            // Target not reached - refund depositors
+            let deposit = self.deposit(&caller).get();
             require!(deposit > 0, "No deposit");
             self.deposit(&caller).clear();
-            self.send_tokens(&caller, &deposit);
+            if let Some(dep) = deposit.into_non_zero() {
+                self.tx().to(&caller).payment(Payment::new(token_id, 0, dep)).transfer();
+            }
         }
-    }
-
-    fn send_tokens(&self, to: &ManagedAddress, amount: &BigUint) {
-        let token_id = self.token_identifier().get();
-        self.tx()
-            .to(to)
-            .egld_or_single_esdt(&token_id, 0, amount)
-            .transfer();
     }
 
     #[view(getCurrentFunds)]
     fn get_current_funds(&self) -> BigUint {
-        let token_id = self.token_identifier().get();
-        self.blockchain().get_sc_balance(&token_id, 0)
+        self.blockchain().get_sc_balance(&self.cf_token_identifier().get(), 0)
     }
 
     #[storage_mapper("target")]
     fn target(&self) -> SingleValueMapper<BigUint>;
-
     #[storage_mapper("deadline")]
-    fn deadline(&self) -> SingleValueMapper<u64>;
-
+    fn deadline(&self) -> SingleValueMapper<TimestampSeconds>;
     #[storage_mapper("tokenIdentifier")]
-    fn token_identifier(&self) -> SingleValueMapper<EgldOrEsdtTokenIdentifier>;
-
+    fn cf_token_identifier(&self) -> SingleValueMapper<TokenId>;
     #[storage_mapper("deposit")]
     fn deposit(&self, donor: &ManagedAddress) -> SingleValueMapper<BigUint>;
 }
@@ -805,24 +1045,71 @@ require!(amount > 0, ERR_AMOUNT_POSITIVE);
 require!(other_amount > 0, ERR_AMOUNT_POSITIVE);
 ```
 
-### WRONG: Trying to send EGLD + ESDT together
+### Sending EGLD + ESDT Together (since v0.55.0)
 
 ```rust
-// WRONG - Impossible on MultiversX
-self.tx()
-    .to(&recipient)
-    .egld(&egld_amount)
-    .single_esdt(&token, 0, &esdt_amount) // Cannot combine!
-    .transfer();
+// Supported: EGLD and ESDT can be combined in multi-transfers
+// Use Payment with TokenId for unified handling
+let mut payments = ManagedVec::new();
+if let Some(egld_nz) = egld_amount.into_non_zero() {
+    payments.push(Payment::new(TokenId::from("EGLD-000000"), 0, egld_nz));
+}
+if let Some(esdt_nz) = esdt_amount.into_non_zero() {
+    payments.push(Payment::new(TokenId::from(token_id), 0, esdt_nz));
+}
+self.tx().to(&recipient).payment(&payments).transfer();
 ```
 
-### CORRECT: Separate transactions
+## Production Patterns
+
+For production-grade contracts, these additional skills cover advanced patterns:
+
+### Gas-Optimized Storage Caching
+Use **Drop-based caches** to batch storage reads on entry and writes on exit. See the `multiversx-cache-patterns` skill.
 
 ```rust
-// CORRECT - Separate transfers
-self.tx().to(&recipient).egld(&egld_amount).transfer();
-self.tx().to(&recipient).single_esdt(&token, 0, &esdt_amount).transfer();
+// Load all state once, mutate in memory, commit on scope exit
+let mut cache = StorageCache::new(self);
+cache.total_supply += &amount;
+cache.fee_reserve += &fee;
+// Drop automatically writes both values back
 ```
+
+### Cross-Contract Storage Reads
+Read another contract's storage directly without async calls using `#[storage_mapper_from_address]`. See the `multiversx-cross-contract-storage` skill.
+
+```rust
+#[storage_mapper_from_address("reserve")]
+fn external_reserve(
+    &self,
+    contract_address: ManagedAddress,
+    token_id: &TokenIdentifier,
+) -> SingleValueMapper<BigUint, ManagedAddress>;
+```
+
+### Production Project Structure
+For multi-module contracts, follow the modular architecture pattern. See the `multiversx-project-architecture` skill.
+
+```
+src/
+  lib.rs          # Trait composition only
+  storage.rs      # All storage mappers
+  cache/mod.rs    # Drop-based caches
+  views.rs        # #[view] endpoints
+  config.rs       # Admin config endpoints
+  events.rs       # Event definitions
+  validation.rs   # Input validation
+  errors.rs       # Static error constants
+  helpers.rs      # Business logic
+```
+
+### DeFi Financial Math
+For lending, staking, or DEX contracts, use half-up rounding and standardized precision levels. See the `multiversx-defi-math` skill.
+
+### Additional Specialized Skills
+- `multiversx-flash-loan-patterns` — Flash loan implementation with security guards
+- `multiversx-factory-manager` — Deploy and manage child contracts
+- `multiversx-vault-pattern` — In-memory token tracking for multi-step operations
 
 ## Documentation Links
 

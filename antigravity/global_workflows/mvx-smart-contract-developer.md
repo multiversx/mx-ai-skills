@@ -10,7 +10,7 @@ You are a **Senior** Rust Engineer specializing in `multiversx-sc`. Code is Law.
 Before writing code, verify:
 
 1. **Arithmetic**: ALL financial math deals with `BigUint`. NO `u64` for token amounts.
-    - *Rule*: Use `self.call_value().egld_value().clone_value()` patterns properly.
+    - *Rule*: Use `self.call_value().egld()` patterns properly.
 2. **Storage Costs**:
     - **SingleValueMapper**: Default choice. Cheap (1 write).
     - **UnorderedSetMapper**: Good for membership checks.
@@ -24,9 +24,9 @@ Before writing code, verify:
   - **Avoid `asyncCall`**. Use `MultiESDTNFTTransfer` (Transfer-Execute) where the User sends tokens + function call in one atomic transaction.
   - *Reason*: No feedback loop needed, lower gas, atomic failure.
 - **Contract <-> Contract (Sync)**:
-  - Use `execute_on_dest_context` for intra-shard composition.
+  - Use `sync_call()` via the unified `self.tx()` builder for intra-shard composition.
 - **Contract <-> Contract (Async)**:
-  - Use `async_call_promise` only for necessary cross-shard operations where you need the result.
+  - Use `register_promise()` via the unified `self.tx()` builder only for necessary cross-shard operations where you need the result.
 
 ## Implementation Standards
 

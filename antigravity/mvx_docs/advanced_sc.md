@@ -9,14 +9,88 @@
 - **Syntax**:
 
   ```rust
-  let result: BigUint = self.callee_proxy(address)
+  let result: BigUint = self.tx()
+      .to(&address)
+      .typed(callee_proxy::CalleeProxy)
       .endpoint(args)
-      .execute_on_dest_context();
+      .returns(ReturnsResult)
+      .sync_call();
   ```
 
-- **BackTransfers**: Synchronous calls strictly return the function result. However, for returning *tokens* (payments) alongside results, the `execute_on_dest_context_with_back_transfers` pattern (or simply relying on the protocol's automatic unspent gas/token return on failure) is key.
-  - *Note*: True "BackTransfers" of tokens in a success case usually require the callee to send funds back to the caller explicitly, which might fail if not handled correctly in a sync context (balance check).
 - **Constraint**: Fails if target is in a different shard.
+
+### BackTransfers (Retrieving Tokens from Calls)
+
+When a callee sends tokens back to the caller (e.g., a DEX returning swapped tokens), these are captured as **back-transfers**. The mechanism differs by call type:
+
+#### Sync Calls — Result Handlers
+
+```rust
+// Basic: get all back-transferred payments
+let back_transfers = self.tx()
+    .to(&dex_address)
+    .typed(dex_proxy::DexProxy)
+    .swap(token_in, amount_in)
+    .returns(ReturnsBackTransfers)
+    .sync_call();
+
+// Convert to v0.64 Payment types
+let payments: PaymentVec = back_transfers.into_payment_vec();
+for payment in &payments {
+    // payment.token_identifier: TokenId
+    // payment.token_nonce: u64
+    // payment.amount: NonZeroBigUint (guaranteed non-zero)
+}
+```
+
+**Available result handlers:**
+
+| Handler | Returns | Use When |
+|---|---|---|
+| `ReturnsBackTransfers` | `BackTransfers` | General case — get all payments |
+| `ReturnsBackTransfersReset` | `BackTransfers` | Multiple sync calls in one tx — resets accumulator first |
+| `ReturnsBackTransfersEGLD` | `BigUint` | Only need the EGLD sum |
+| `ReturnsBackTransfersSingleESDT` | `EsdtTokenPayment` | Expect exactly one ESDT back (panics otherwise) |
+
+**Critical: The accumulation gotcha with multiple sync calls:**
+
+```rust
+// BUG: Without Reset, back-transfers ACCUMULATE across calls
+let bt1 = self.tx().to(&a).typed(P).call1().returns(ReturnsBackTransfers).sync_call();
+let bt2 = self.tx().to(&b).typed(P).call2().returns(ReturnsBackTransfers).sync_call();
+// bt2 contains payments from BOTH call1 AND call2!
+
+// FIX: Use ReturnsBackTransfersReset
+let bt1 = self.tx().to(&a).typed(P).call1().returns(ReturnsBackTransfersReset).sync_call();
+let bt2 = self.tx().to(&b).typed(P).call2().returns(ReturnsBackTransfersReset).sync_call();
+// bt2 contains only call2's payments
+```
+
+**Rule of thumb**: Always use `ReturnsBackTransfersReset` when making >1 sync call that returns tokens in the same endpoint.
+
+#### Promises Callbacks — `blockchain().get_back_transfers()`
+
+In `#[promises_callback]`, use the blockchain API directly:
+
+```rust
+#[promises_callback]
+fn swap_callback(&self) {
+    let back_transfers = self.blockchain().get_back_transfers();
+    let payments = back_transfers.into_payment_vec();
+    for payment in &payments {
+        // Store/forward received tokens
+    }
+}
+```
+
+#### BackTransfers Helper Methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `.egld_sum()` | `BigUint` | Sum of all EGLD-000000 transfers |
+| `.to_single_esdt()` | `EsdtTokenPayment` | Single ESDT (panics if not exactly one) |
+| `.into_payment_vec()` | `PaymentVec` (`ManagedVec<Payment>`) | Convert to v0.64 `Payment` types |
+| `.into_multi_value()` | `MultiValueEncoded<EgldOrEsdtTokenPaymentMultiValue>` | For returning from endpoints |
 
 ### 2. Asynchronous Calls (Cross-Shard)
 
@@ -30,11 +104,12 @@
 - **Syntax**:
 
   ```rust
-  self.callee_proxy(address)
+  self.tx()
+      .to(&address)
+      .typed(callee_proxy::CalleeProxy)
       .endpoint(args)
-      .async_call()
-      .with_callback(self.callbacks().my_callback())
-      .call_and_exit();
+      .callback(self.callbacks().my_callback())
+      .async_call_and_exit();
   ```
 
 ### 3. Promises (Protocol v1.6+)
@@ -44,9 +119,12 @@
 - **Syntax**:
 
   ```rust
-  self.callee_proxy(address)
+  self.tx()
+      .to(&address)
+      .typed(callee_proxy::CalleeProxy)
       .endpoint(args)
-      .async_call_promise()
+      .callback(self.callbacks().my_callback())
+      .gas_for_callback(10_000_000)
       .register_promise();
   ```
 

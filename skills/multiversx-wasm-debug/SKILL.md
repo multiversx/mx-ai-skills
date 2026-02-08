@@ -141,8 +141,8 @@ if amount == 0 {
 # Build debug version with source mapping
 sc-meta all build --wasm-symbols
 
-# Or using mxpy
-mxpy contract build --debug
+# Alternative (equivalent)
+sc-meta all build --wasm-symbols
 ```
 
 ### Debug Build Output
@@ -222,17 +222,11 @@ wasm-objdump -j Export -x output/contract.wasm | grep "func"
 ### Estimating Gas Costs
 
 ```bash
-# Deploy to devnet and call endpoints
-mxpy contract deploy \
-    --bytecode output/contract.wasm \
-    --proxy https://devnet-gateway.multiversx.com \
-    --chain D \
-    --pem wallet.pem \
-    --gas-limit 60000000 \
-    --send
+# Deploy to devnet using sc-meta or an interactor
+sc-meta all deploy --proxy https://devnet-gateway.multiversx.com --chain D
 
-# Check transaction gas used
-mxpy tx get --hash <tx_hash> --proxy https://devnet-gateway.multiversx.com
+# Or use a Rust interactor for programmatic deployment
+# See the multiversx-sc interactor pattern for details
 ```
 
 ### Identifying Gas-Heavy Code
@@ -312,7 +306,7 @@ fn debug_event(&self, value: &BigUint);
 |------|---------|---------|
 | `twiggy` | Size analysis | `cargo install twiggy` |
 | `wasm-objdump` | WASM inspection | Part of wabt |
-| `wasm-opt` | Size optimization | Part of binaryen |
+| `wasm-opt` | Size optimization | `cargo install wasm-opt` or part of binaryen |
 | `wasmtime` | WASM runtime/debug | `cargo install wasmtime` |
 | `sc-meta` | MultiversX build tool | `cargo install multiversx-sc-meta` |
 

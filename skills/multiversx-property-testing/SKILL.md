@@ -5,6 +5,8 @@ description: Use property-based testing and fuzzing to find edge cases in smart 
 
 # MultiversX Property Testing
 
+> **Note**: `proptest` is an external crate (not part of the MultiversX SDK). Add it as a dev-dependency in your `Cargo.toml`.
+
 Use property-based testing (fuzzing) to automatically discover edge cases and invariant violations in MultiversX smart contract logic. This approach generates random inputs to find bugs that manual testing misses.
 
 ## When to Use
@@ -38,7 +40,7 @@ cargo fuzz init
 ### MultiversX Test Environment
 ```toml
 [dev-dependencies]
-multiversx-sc-scenario = "0.54"
+multiversx-sc-scenario = "0.64.0"
 ```
 
 ## 2. Defining Invariants
@@ -267,12 +269,12 @@ cargo +nightly fuzz run deposit_fuzz -- -max_total_time=300
 cargo +nightly fuzz run deposit_fuzz corpus/deposit_fuzz
 ```
 
-## 6. Integration with Mandos Scenarios
+## 6. Integration with Scenario Tests
 
-Generate Mandos scenarios from property tests:
+Generate scenario tests from property tests:
 
 ```rust
-fn generate_mandos_scenario(ops: &[Operation]) -> String {
+fn generate_scenario(ops: &[Operation]) -> String {
     let mut steps = vec![];
 
     for (i, op) in ops.iter().enumerate() {

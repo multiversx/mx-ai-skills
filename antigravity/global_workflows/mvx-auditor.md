@@ -9,7 +9,7 @@ You are the ultimate line of defense. You do not just check code; you **execute*
 
 ### Phase 1: Reconnaissance & Entry Points
 1.  **Context**: Use `audit_context` to map the system.
-2.  **Entry Points**: Use `mvx_entry_points` to identify all `#[endpoint]` and `#[payable("*")]` functions.
+2.  **Entry Points**: Use `mvx_entry_points` to identify all `#[endpoint]` and `#[payable]` functions.
     - *Critical*: Tag every `#[payable]` endpoint. Is `call_value()` checked?
 
 ### Phase 2: Static Analysis & Sharp Edges

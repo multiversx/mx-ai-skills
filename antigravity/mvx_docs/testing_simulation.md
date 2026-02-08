@@ -37,7 +37,7 @@ A binary that mimics a local Testnet without consensus delays.
 ### Configuration (`config/config.toml`)
 
 - `auto-generate-blocks`: Set to `false` for deterministic testing.
-- `round-duration-in-milliseconds`: Set low (e.g. 6000) or high depending on test needs.
+- `round-duration-in-milliseconds`: Set low (e.g. 600, matching Supernova's 0.6s rounds) or high depending on test needs.
 
 ## 3. Testing Layers
 

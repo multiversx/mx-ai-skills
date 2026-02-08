@@ -88,13 +88,14 @@ fn lookup(secret_index: usize, table: &[u8]) -> u8 {
 
 ```rust
 // CORRECT: Use VM-provided verification
-fn verify_signature(&self, message: &ManagedBuffer, signature: &ManagedBuffer) -> bool {
+fn verify_signature(&self, message: &ManagedBuffer, signature: &ManagedBuffer) {
     let signer = self.expected_signer().get();
+    // Panics with signal error if verification fails — does NOT return bool
     self.crypto().verify_ed25519(
         signer.as_managed_buffer(),
         message,
         signature
-    )
+    );
 }
 
 // CORRECT: Use VM-provided hashing
@@ -191,8 +192,12 @@ fn gas_test(&self, input: ManagedBuffer) -> u64 {
 // VULNERABLE
 fn verify_token(&self, token: &ManagedBuffer) -> bool {
     let valid_token = self.auth_token().get();
+    let mut token_bytes = [0u8; 64];
+    let mut valid_bytes = [0u8; 64];
+    token.load_slice(0, &mut token_bytes[..token.len()]);
+    valid_token.load_slice(0, &mut valid_bytes[..valid_token.len()]);
     for i in 0..token.len() {
-        if token.load_byte(i) != valid_token.load_byte(i) {
+        if token_bytes[i] != valid_bytes[i] {
             return false;  // Timing leak!
         }
     }

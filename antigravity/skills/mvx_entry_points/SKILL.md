@@ -11,7 +11,7 @@ This skill helps you identify the attack surface of a smart contract by enumerat
 Scan for `multiversx_sc` macros that expose functions:
 - **`#[endpoint]`**: Public write function. **High Risk**.
 - **`#[view]`**: Public read function. Low risk (unless used on-chain).
-- **`#[payable("*")]`**: Accepts EGLD/ESDT. **Critical Risk** (value handling).
+- **`#[payable]`**: Accepts EGLD/ESDT. **Critical Risk** (value handling).
 - **`#[init]`**: Constructor.
 - **`#[upgrade]`**: Upgrade handler. **Critical Risk** (migration logic).
 
@@ -22,10 +22,10 @@ Functions that change state but don't accept value.
 - *Check*: Is there `require!`? Who can call this (Owner only?)?
 - *Risk*: Unauthorized state change.
 
-### B. Payable Endpoints (`#[payable("*")]`)
+### B. Payable Endpoints (`#[payable]`)
 Functions receiving money.
 - *Check*:
-    - Does it use `self.call_value().all_esdt_transfers()`?
+    - Does it use `self.call_value().all()` or `self.call_value().single()`?
     - Is `amount > 0` checked?
     - Are token IDs validated?
 - *Risk*: Stealing funds, accepted fake tokens.

@@ -18,43 +18,13 @@ Deep technical knowledge of the MultiversX protocol architecture, utilized for r
 
 ## 1. Core Architecture: Adaptive State Sharding
 
-### Sharding Overview
-
-MultiversX implements three types of sharding simultaneously:
-
-| Sharding Type | Description | Implication |
-|--------------|-------------|-------------|
-| **Network** | Nodes distributed into shards | Each shard has subset of validators |
-| **Transaction** | TXs processed by sender's shard | TX execution location is deterministic |
-| **State** | Each shard maintains portion of state | Account data is shard-specific |
-
-### Shard Assignment
-Accounts are assigned to shards based on address:
-```
-Shard = last_byte_of_address % num_shards
-```
-
-**Practical implication**: Contract address determines which shard processes its transactions.
+MultiversX implements network, transaction, and state sharding simultaneously. Shard assignment: `last_byte_of_address % num_shards`.
 
 ### The Metachain
 
-The Metachain is a special coordinator shard that:
-- Handles validator shuffling between shards
-- Processes epoch transitions
-- Manages system smart contracts (Staking, ESDT issuance)
-- Notarizes shard block headers
+Coordinator shard handling: validator shuffling, epoch transitions, system smart contracts (Staking, ESDT issuance, Delegation, Governance), and shard block notarization.
 
-**Important**: The Metachain does NOT execute general smart contracts.
-
-```rust
-// System contracts live on Metachain:
-// - Staking contract
-// - ESDT system smart contract
-// - Delegation manager
-// - Governance
-
-// Regular contracts execute on shard determined by their address
-```
+**Important**: The Metachain does NOT execute general smart contracts. Contract address determines which shard processes its transactions.
 
 ## 2. Cross-Shard Transactions
 
@@ -123,44 +93,16 @@ fn on_result(&self, #[call_result] result: ManagedAsyncCallResult<BigUint>) {
 
 ## 3. Consensus: Secure Proof of Stake (SPoS)
 
-### Validator Selection
-
-```
-Selection factors:
-- Stake amount
-- Validator rating (performance history)
-- Random seed (from previous block)
-
-Result: Deterministic but unpredictable validator selection
-```
-
-### Block Production
-
-| Phase | Duration | Description |
-|-------|----------|-------------|
-| Propose | ~1s | Leader proposes block |
-| Validate | ~1s | Validators verify and sign |
-| Commit | ~1s | Block committed with BLS multi-sig |
+Validator selection based on: stake amount, rating (performance history), and random seed (previous block). Block production uses BLS multi-signature across propose/validate/commit phases.
 
 ### Finality
 
-- **Intra-shard**: Instant finality (~6 seconds)
-- **Cross-shard**: Finality after receiver shard processes (~12-18 seconds)
+- **Intra-shard**: ~0.6 seconds per round (Supernova)
+- **Cross-shard**: ~2-3 seconds (after receiver shard processes)
 
 ## 4. Token Standards (ESDT)
 
-### Native Implementation
-
-Unlike ERC-20, ESDT tokens are protocol-level, not smart contracts:
-
-```rust
-// ERC-20 (Ethereum): Contract tracks balances
-mapping(address => uint256) balances;
-
-// ESDT (MultiversX): Protocol tracks balances
-// No contract needed for basic token operations
-// Balances stored directly in account state
-```
+ESDT tokens are protocol-level (not smart contracts). Balances stored directly in account state — no contract needed for basic operations.
 
 ### ESDT Properties
 
@@ -329,7 +271,7 @@ fn cross_shard_call(&self) {
         .to(&other_contract)
         .typed(proxy::Proxy)
         .remote_function()
-        .with_gas_limit(GAS_FOR_REMOTE)
+        .gas(GAS_FOR_REMOTE)
         .callback(self.callbacks().on_result())
         .with_extra_gas_for_callback(GAS_FOR_CALLBACK)
         .async_call_and_exit();
@@ -351,7 +293,7 @@ Monitor MultiversX Improvement Proposals for standard implementations:
 | Constant | Value | Notes |
 |----------|-------|-------|
 | Max shards | 3 + Metachain | Current mainnet configuration |
-| Round duration | ~6 seconds | Block time |
+| Round duration | ~0.6 seconds | Block time (Supernova) |
 | Epoch duration | ~24 hours | Validator reshuffling period |
 | Max TX size | 256 KB | Transaction data limit |
 | Max gas limit | 600,000,000 | Per transaction |

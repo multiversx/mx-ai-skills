@@ -9,7 +9,7 @@ This skill helps you rapidly build a mental model of a codebase before diving in
 
 ## 1. Reconnaissance
 - **Identify the Core**: Where is the money / critical logic?
-    - *MultiversX*: Look for `#[multiversx_sc::contract]`, `#[payable("*")]`, and `impl` blocks.
+    - *MultiversX*: Look for `#[multiversx_sc::contract]`, `#[payable]`, and `impl` blocks.
 - **Identify Externalities**:
     - Which other contracts does this interact with?
     - Are there hardcoded addresses? (e.g., `sc:` smart contract literals).

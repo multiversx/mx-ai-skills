@@ -20,14 +20,14 @@ The `self.blockchain()` and `self.send()` APIs provide low-level access to the V
 #### Blockchain API
 
 - **Context**: `get_caller()`, `get_sc_address()`, `get_shard_of_address(addr)`.
-- **Block Info**: `get_block_timestamp()`, `get_block_nonce()`, `get_block_random_seed()`.
+- **Block Info**: `get_block_timestamp_millis()` / `get_block_timestamp_seconds()`, `get_block_nonce()`, `get_block_random_seed()`.
 - **State**: `get_balance(addr)`, `get_esdt_balance(addr, token, nonce)`.
 
 #### Send API (Async & Sync)
 
 - **`direct()`**: Simple transfer. Fails if dest is a contract in same shard that reverts (sync).
 - **`direct_egld()` / `direct_esdt()`**: Typed wrappers for safety.
-- **`contract_call()`**: robust builder for async calls.
+- **`self.tx().typed(Proxy)`**: unified builder for sync and async calls.
 
 ## Modular Architecture
 
@@ -39,7 +39,7 @@ The `self.blockchain()` and `self.send()` APIs provide low-level access to the V
 ## API Modules
 
 1. **`BlockchainApi`**: Read global state (`get_block_nonce`, `get_sc_address`).
-2. **`CallValueApi`**: Handle payments (`egld_value()`, `single_esdt()`).
+2. **`CallValueApi`**: Handle payments (`egld()`, `single()`, `all()`).
 3. **`SendApi`**: Effectuate transfers (`direct_egld`, `propose_async_call`).
 4. **`CryptoApi`**: Hashing (`sha256`), Verify (`verify_ed25519`).
 
@@ -73,7 +73,7 @@ The `self.blockchain()` and `self.send()` APIs provide low-level access to the V
 ### 3. Security
 
 - **Checks-Effects-Interactions**: Update your storage (Effects) *before* making any external contract calls (Interactions) to prevent Re-entrancy.
-  - *Note*: MultiversX Async calls are safer by default, but sync calls (`contract_call`) still require care.
+  - *Note*: MultiversX Async calls are safer by default, but sync calls (`self.tx()...sync_call()`) still require care.
 - **Access Control**: Use `#[only_owner]` or `#[only_admin]` annotations strictly.
 
 ## WASM & SpaceVM

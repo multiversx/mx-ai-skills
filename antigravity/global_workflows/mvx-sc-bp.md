@@ -12,7 +12,7 @@ Use this workflow to audit or review any smart contract implementation.
   - *Bad*: `u64 + u64` (risk of overflow, though panic is safe, it handles poorly).
   - *Good*: `self.balance().get() + amount`.
 - [ ] **Re-entrancy**: Are storage updates (Effects) happening *before* external calls (Interactions)?
-  - *Check*: Look for `self.send().direct_...` or `contract_call`. Ensure state is settled before these lines.
+  - *Check*: Look for `self.send().direct_...` or `self.tx()` calls. Ensure state is settled before these lines.
 - [ ] **Access Control**: Do admin endpoints have `#[only_owner]` or `#[only_admin]`?
 
 ## 2. Gas Optimization
@@ -27,7 +27,7 @@ Use this workflow to audit or review any smart contract implementation.
 
 ## 3. Correctness
 
-- [ ] **Payable**: Do endpoints receiving funds have `#[payable("*")]` or `#[payable("EGLD")]`?
+- [ ] **Payable**: Do endpoints receiving funds have `#[payable]` or `#[payable("EGLD")]`?
   - without this, transfers will fail.
 - [ ] **Init**: Is `#[init]` initializing all necessary storage?
 - [ ] **Views**: Are read-only functions marked with `#[view]`?
