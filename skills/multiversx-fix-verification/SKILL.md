@@ -101,7 +101,7 @@ The fix prevents the original exploit but introduces a new vulnerability:
 #[endpoint]
 fn withdraw(&self) {
     let balance = self.balance().get();
-    self.send_egld(&caller, &balance);  // External call before state update
+    self.tx().to(&caller).egld(&balance).transfer();  // External call before state update
     self.balance().clear();
 }
 
@@ -110,7 +110,7 @@ fn withdraw(&self) {
 fn withdraw(&self) {
     self.locked().set(true);  // Lock added
     let balance = self.balance().get();
-    self.send_egld(&caller, &balance);
+    self.tx().to(&caller).egld(&balance).transfer();
     self.balance().clear();
     // Missing: self.locked().set(false);  <- LOCK NEVER RELEASED!
 }
@@ -120,7 +120,7 @@ fn withdraw(&self) {
 fn withdraw(&self) {
     let balance = self.balance().get();
     self.balance().clear();  // State update BEFORE external call
-    self.send_egld(&caller, &balance);
+    self.tx().to(&caller).egld(&balance).transfer();
 }
 ```
 
@@ -135,9 +135,9 @@ let total = amount1 + amount2;  // Can overflow
 require!(amount1 < MAX_AMOUNT, "Amount1 too large");
 let total = amount1 + amount2;  // Still overflows if amount2 is large!
 
-// CORRECT FIX: Checked arithmetic
-let total = amount1.checked_add(&amount2)
-    .unwrap_or_else(|| sc_panic!("Overflow"));
+// CORRECT FIX: BigUint is arbitrary precision (no overflow), but validate bounds
+let total = &amount1 + &amount2;
+require!(total <= BigUint::from(MAX_ALLOWED), "Amount exceeds maximum");
 ```
 
 ## 3. Verification Checklist

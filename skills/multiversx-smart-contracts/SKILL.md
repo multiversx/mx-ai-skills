@@ -79,7 +79,7 @@ version = "0.64.0"
 ```rust
 #![no_std]
 
-use multiversx_sc::imports::*;
+multiversx_sc::imports!();
 
 #[multiversx_sc::contract]
 pub trait MyContract {
@@ -133,7 +133,7 @@ pub trait MyContract {
 
 | Annotation | Purpose |
 |------------|---------|
-| `#[payable]` | Accepts any token payment (replaces `#[payable("*")]` since SDK v0.64.0) |
+| `#[payable]` | Accepts any token payment (shorthand for `#[payable("*")]` since SDK v0.64.0) |
 | `#[payable("EGLD")]` | Accepts only EGLD |
 | `#[payable("TOKEN-ID")]` | Accepts specific token |
 
@@ -143,6 +143,13 @@ pub trait MyContract {
 |------------|---------|
 | `#[event("eventName")]` | Defines contract event |
 | `#[indexed]` | Marks event field as searchable topic |
+
+### Callback Annotations
+
+| Annotation | Purpose |
+|------------|---------|
+| `#[callback]` | Callback for legacy async calls |
+| `#[promises_callback]` | Callback for promise-based async calls (used with `register_promise()`) |
 
 ## Storage Mappers
 
@@ -255,6 +262,115 @@ self.nft().nft_add_quantity(nonce, amount);
 self.nft().get_all_token_data(nonce);
 ```
 
+### WhitelistMapper
+Non-iterable O(1) membership check. Lighter than SetMapper when iteration is not needed.
+
+```rust
+#[storage_mapper("allowedTokens")]
+fn allowed_tokens(&self) -> WhitelistMapper<TokenId>;
+
+// Usage
+self.allowed_tokens().add(&token_id);
+self.allowed_tokens().contains(&token_id); // O(1)
+self.allowed_tokens().require_whitelisted(&token_id); // panics if missing
+self.allowed_tokens().remove(&token_id);
+```
+
+### BiDiMapper
+Bidirectional mapping — two-way lookups between keys and values (both must be unique).
+
+```rust
+#[storage_mapper("idToAddress")]
+fn id_to_address(&self) -> BiDiMapper<u64, ManagedAddress>;
+
+// Usage
+self.id_to_address().insert(1u64, address.clone());
+let addr = self.id_to_address().get_value(&1u64);
+let id = self.id_to_address().get_id(&address);
+self.id_to_address().contains_id(&1u64);
+self.id_to_address().remove_by_id(&1u64);
+```
+
+### UniqueIdMapper
+Manages a pool of unique IDs for random or sequential assignment.
+
+```rust
+#[storage_mapper("nftIds")]
+fn nft_ids(&self) -> UniqueIdMapper<Self::Api>;
+
+// Usage
+self.nft_ids().set_initial_len(1000); // IDs 1..=1000
+let id = self.nft_ids().swap_remove(index); // pop random ID
+self.nft_ids().len(); // remaining IDs
+```
+
+### OrderedBinaryTreeMapper
+Self-balancing binary search tree for ordered on-chain data.
+
+```rust
+#[storage_mapper("orderBook")]
+fn order_book(&self) -> OrderedBinaryTreeMapper<Self::Api, u64>;
+```
+
+### QueueMapper
+FIFO queue with push-back and pop-front.
+
+```rust
+#[storage_mapper("pending")]
+fn pending(&self) -> QueueMapper<ManagedAddress>;
+
+// Usage
+self.pending().push_back(address);
+let next = self.pending().pop_front(); // Option
+self.pending().len();
+```
+
+### AddressToIdMapper
+Bidirectional mapping between addresses and auto-incrementing `u64` IDs. Gas-efficient for contracts that track many users by numeric ID.
+
+```rust
+#[storage_mapper("users")]
+fn users(&self) -> AddressToIdMapper;
+
+// Usage
+let id: u64 = self.users().get_or_create_id(&caller); // auto-assigns next ID
+let addr: ManagedAddress = self.users().get_address(id);
+self.users().contains(&caller); // O(1) check
+```
+
+### UserMapper
+Similar to AddressToIdMapper but designed specifically for user management with count tracking.
+
+```rust
+#[storage_mapper("user")]
+fn user_mapper(&self) -> UserMapper;
+
+// Usage
+let user_id = self.user_mapper().get_or_create_user(&address);
+let user_count = self.user_mapper().get_user_count();
+let address = self.user_mapper().get_user_address(user_id);
+```
+
+### MapStorageMapper
+Map where values are themselves storage mappers (nested storage). Use when each key needs its own complex storage structure.
+
+```rust
+#[storage_mapper("vaults")]
+fn vaults(&self) -> MapStorageMapper<ManagedAddress, SingleValueMapper<BigUint>>;
+```
+
+### TimelockMapper
+Value with a time-lock — stores a current and future value with unlock timestamp. Value transitions automatically when block time passes the unlock point.
+
+```rust
+#[storage_mapper("admin")]
+fn admin(&self) -> TimelockMapper<ManagedAddress>;
+
+// Usage — schedule a change with delay
+self.admin().update_and_lock(new_admin, unlock_timestamp);
+let current = self.admin().get(); // returns current until unlock, then future
+```
+
 ## Data Types
 
 ### Core Types
@@ -296,7 +412,66 @@ let token_id = TokenId::from("TOKEN-abc123"); // ESDT
 let nz_amount = NonZeroBigUint::new_or_panic(BigUint::from(1000u64));
 ```
 
+## Payment Types: `Payment` vs `EgldOrEsdtTokenPayment`
+
+| Aspect | `Payment<M>` (v0.64+) | `EgldOrEsdtTokenPayment<M>` (Legacy) |
+|---|---|---|
+| Token ID | `TokenId` (EGLD = `EGLD-000000`) | `EgldOrEsdtTokenIdentifier` |
+| Amount | `NonZeroBigUint` (zero rejected) | `BigUint` (zero allowed) |
+| Status | Preferred for new code | Widely used in production |
+
+```rust
+// New (v0.64+): Payment with TokenId + NonZeroBigUint
+let payment: Payment<Self::Api> = self.call_value().single();
+// payment.token_identifier is TokenId, payment.amount is NonZeroBigUint
+
+// Legacy: EgldOrEsdtTokenPayment with BigUint
+let legacy = self.call_value().egld_or_single_esdt();
+// legacy.token_identifier is EgldOrEsdtTokenIdentifier, legacy.amount is BigUint
+```
+
 ## Payment Handling
+
+### Bad
+```rust
+// DON'T: Use BigUint for payment amounts — allows zero-value transfers
+let amount: BigUint = self.call_value().egld_value().clone_value();
+let payment = EsdtTokenPayment::new(token, 0, amount); // Legacy type, no zero check
+```
+
+### Good
+```rust
+// DO: Use NonZeroBigUint and Payment — zero is rejected at the type level
+let payment = self.call_value().single(); // Returns Payment with NonZeroBigUint
+// payment.amount is NonZeroBigUint — guaranteed non-zero
+```
+
+### Bad
+```rust
+// DON'T: Use legacy EgldOrEsdtTokenIdentifier
+let token: EgldOrEsdtTokenIdentifier = self.call_value().egld_or_single_esdt().token_identifier;
+```
+
+### Good
+```rust
+// DO: Use unified TokenId — handles both EGLD and ESDT uniformly
+let token: TokenId = self.call_value().single().token_identifier;
+// EGLD is represented as "EGLD-000000"
+```
+
+### Bad
+```rust
+// DON'T: Use legacy send() API for cross-contract calls
+self.send().direct_esdt(&recipient, &token, 0, &amount);
+self.send_raw().direct_egld_execute(&to, &amount, 0, &ManagedBuffer::new());
+```
+
+### Good
+```rust
+// DO: Use the Tx builder API for all transfers and cross-contract calls
+self.tx().to(&recipient).payment(payment).transfer();
+self.tx().to(&addr).typed(proxy::Proxy).some_endpoint(arg).sync_call();
+```
 
 ### Receiving EGLD
 
@@ -397,7 +572,7 @@ self.tx()
 fn deposit_event(
     &self,
     #[indexed] caller: &ManagedAddress,
-    #[indexed] token: &TokenIdentifier,
+    #[indexed] token: &TokenId,
     amount: &BigUint,
 );
 
@@ -746,7 +921,6 @@ pub trait MyContract: multiversx_sc_modules::esdt::EsdtModule {
 
 ```rust
 #![no_std]
-
 use multiversx_sc::{chain_core::types::TimestampSeconds, imports::*};
 
 #[multiversx_sc::contract]
@@ -762,72 +936,45 @@ pub trait Crowdfunding {
     #[payable]
     #[endpoint]
     fn fund(&self) {
-        require!(
-            self.blockchain().get_block_timestamp_millis() < self.deadline().get(),
-            "Funding period ended"
-        );
-
+        require!(self.blockchain().get_block_timestamp_millis() < self.deadline().get(), "Funding period ended");
         let payment = self.call_value().single();
-        require!(
-            payment.token_identifier == self.cf_token_identifier().get(),
-            "Wrong token"
-        );
-
-        let caller = self.blockchain().get_caller();
-        self.deposit(&caller)
+        require!(payment.token_identifier == self.cf_token_identifier().get(), "Wrong token");
+        self.deposit(&self.blockchain().get_caller())
             .update(|deposit| *deposit += payment.amount.as_big_uint());
     }
 
     #[endpoint]
     fn claim(&self) {
-        require!(
-            self.blockchain().get_block_timestamp_millis() >= self.deadline().get(),
-            "Funding period not ended"
-        );
-
+        require!(self.blockchain().get_block_timestamp_millis() >= self.deadline().get(), "Funding period not ended");
         let caller = self.blockchain().get_caller();
-        let deposit = self.deposit(&caller).get();
+        let token_id = self.cf_token_identifier().get();
 
         if self.get_current_funds() >= self.target().get() {
-            // Target reached - owner claims
             require!(caller == self.blockchain().get_owner_address(), "Not owner");
-            let token_id = self.cf_token_identifier().get();
-            let sc_balance = self.get_current_funds();
-            if let Some(sc_balance_nz) = sc_balance.into_non_zero() {
-                self.tx()
-                    .to(&caller)
-                    .payment(Payment::new(token_id, 0, sc_balance_nz))
-                    .transfer();
+            if let Some(bal) = self.get_current_funds().into_non_zero() {
+                self.tx().to(&caller).payment(Payment::new(token_id, 0, bal)).transfer();
             }
         } else {
-            // Target not reached - refund depositors
+            let deposit = self.deposit(&caller).get();
             require!(deposit > 0, "No deposit");
             self.deposit(&caller).clear();
-            let token_id = self.cf_token_identifier().get();
-            if let Some(deposit_nz) = deposit.into_non_zero() {
-                self.tx()
-                    .to(&caller)
-                    .payment(Payment::new(token_id, 0, deposit_nz))
-                    .transfer();
+            if let Some(dep) = deposit.into_non_zero() {
+                self.tx().to(&caller).payment(Payment::new(token_id, 0, dep)).transfer();
             }
         }
     }
 
     #[view(getCurrentFunds)]
     fn get_current_funds(&self) -> BigUint {
-        let token_id = self.cf_token_identifier().get();
-        self.blockchain().get_sc_balance(&token_id, 0)
+        self.blockchain().get_sc_balance(&self.cf_token_identifier().get(), 0)
     }
 
     #[storage_mapper("target")]
     fn target(&self) -> SingleValueMapper<BigUint>;
-
     #[storage_mapper("deadline")]
     fn deadline(&self) -> SingleValueMapper<TimestampSeconds>;
-
     #[storage_mapper("tokenIdentifier")]
     fn cf_token_identifier(&self) -> SingleValueMapper<TokenId>;
-
     #[storage_mapper("deposit")]
     fn deposit(&self, donor: &ManagedAddress) -> SingleValueMapper<BigUint>;
 }

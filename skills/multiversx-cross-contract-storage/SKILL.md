@@ -5,6 +5,8 @@ description: Read another contract's storage directly without async calls using 
 
 # MultiversX Cross-Contract Storage Reads
 
+> **Note**: This skill uses `TokenIdentifier` (ESDT-only alias). For unified EGLD+ESDT identifiers, use `TokenId`.
+
 Read another contract's storage mappers directly — zero gas overhead from proxy calls, no async complexity.
 
 ## What Problem Does This Solve?
@@ -153,6 +155,8 @@ require!(my_shard == target_shard, "Cross-shard read not supported");
 ## Template
 
 ```rust
+multiversx_sc::imports!();
+
 #[multiversx_sc::module]
 pub trait ExternalStorageModule {
     // Define one mapper per external storage key you need

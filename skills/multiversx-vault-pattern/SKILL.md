@@ -28,8 +28,8 @@ The ledger uses two structures working together:
 use multiversx_sc::api::VMApi;
 
 pub struct TokenLedger<M: VMApi> {
-    balances: ManagedMapEncoded<M, TokenIdentifier<M>, BigUint<M>>,
-    tokens: ManagedVec<M, TokenIdentifier<M>>,  // Tracks insertion order for iteration
+    balances: ManagedMapEncoded<M, TokenId<M>, BigUint<M>>,
+    tokens: ManagedVec<M, TokenId<M>>,  // Tracks insertion order for iteration
 }
 
 impl<M: VMApi> TokenLedger<M> {
@@ -50,7 +50,7 @@ impl<M: VMApi> TokenLedger<M> {
     }
 
     /// Credit a token balance
-    pub fn deposit(&mut self, token: &TokenIdentifier<M>, amount: &BigUint<M>) {
+    pub fn deposit(&mut self, token: &TokenId<M>, amount: &BigUint<M>) {
         if !self.balances.contains(token) {
             self.tokens.push(token.clone());
             self.balances.put(token, amount);
@@ -61,7 +61,7 @@ impl<M: VMApi> TokenLedger<M> {
     }
 
     /// Debit an exact amount
-    pub fn withdraw(&mut self, token: &TokenIdentifier<M>, amount: &BigUint<M>) -> BigUint<M> {
+    pub fn withdraw(&mut self, token: &TokenId<M>, amount: &BigUint<M>) -> BigUint<M> {
         let current = self.balance_of(token);
         require!(current >= *amount, "Insufficient ledger balance");
         let new_balance = &current - amount;
@@ -74,21 +74,21 @@ impl<M: VMApi> TokenLedger<M> {
     }
 
     /// Debit a percentage (parts per million)
-    pub fn withdraw_percentage(&mut self, token: &TokenIdentifier<M>, ppm: u32) -> BigUint<M> {
+    pub fn withdraw_percentage(&mut self, token: &TokenId<M>, ppm: u32) -> BigUint<M> {
         let balance = self.balance_of(token);
         let amount = (&balance * ppm) / 1_000_000u64;
         if amount > 0u64 { self.withdraw(token, &amount) } else { BigUint::zero() }
     }
 
     /// Debit entire balance (avoids dust)
-    pub fn withdraw_all(&mut self, token: &TokenIdentifier<M>) -> BigUint<M> {
+    pub fn withdraw_all(&mut self, token: &TokenId<M>) -> BigUint<M> {
         let amount = self.balance_of(token);
         if amount > 0u64 { self.remove_token(token); }
         amount
     }
 
     /// Check balance
-    pub fn balance_of(&self, token: &TokenIdentifier<M>) -> BigUint<M> {
+    pub fn balance_of(&self, token: &TokenId<M>) -> BigUint<M> {
         if !self.balances.contains(token) {
             return BigUint::zero();
         }
@@ -100,14 +100,14 @@ impl<M: VMApi> TokenLedger<M> {
         let mut payments = ManagedVec::new();
         for token in self.tokens.iter() {
             let amount = self.balances.get(&token);
-            if amount > 0u64 {
-                payments.push(Payment::new(token.clone_value(), 0u64, amount));
+            if let Some(non_zero_amount) = NonZeroBigUint::new(amount) {
+                payments.push(Payment::new(token.clone_value(), 0u64, non_zero_amount));
             }
         }
         payments
     }
 
-    fn remove_token(&mut self, token: &TokenIdentifier<M>) {
+    fn remove_token(&mut self, token: &TokenId<M>) {
         self.balances.remove(token);
         // O(N) scan — acceptable for small token sets (typically < 10)
         for (i, t) in self.tokens.iter().enumerate() {
@@ -148,19 +148,49 @@ fn execute_steps(&self, steps: ManagedVec<YourStep<Self::Api>>) {
 }
 ```
 
+## Settlement with Proper Types
+
+### Bad
+```rust
+// DON'T: Use legacy types for settlement — BigUint allows zero-amount payments
+fn settle_bad(&self) -> ManagedVec<EsdtTokenPayment> {
+    let mut payments = ManagedVec::new();
+    for token in self.tokens.iter() {
+        let amount = self.balances.get(&token);
+        payments.push(EsdtTokenPayment::new(token.into(), 0, amount)); // Zero amounts sent!
+    }
+    payments
+}
+```
+
+### Good
+```rust
+// DO: Use TokenId + NonZeroBigUint — skips zero balances at the type level
+fn settle_good(&self) -> ManagedVec<Payment> {
+    let mut payments = ManagedVec::new();
+    for token in self.tokens.iter() {
+        let amount = self.balances.get(&token);
+        if let Some(nz) = NonZeroBigUint::new(amount) {
+            payments.push(Payment::new(token.clone_value(), 0u64, nz));
+        }
+    }
+    payments
+}
+```
+
 ## Anti-Patterns
 
 ### 1. Using Storage for Temporary Balances
 ```rust
 // WRONG — expensive storage writes for state that lives within one tx
 #[storage_mapper("tempBalance")]
-fn temp_balance(&self, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+fn temp_balance(&self, token: &TokenId) -> SingleValueMapper<BigUint>;
 ```
 
 ### 2. Not Cleaning Up Zero Balances
 ```rust
 // WRONG — zero-balance tokens waste gas during settle_all iteration
-pub fn withdraw(&mut self, token: &TokenIdentifier<M>, amount: &BigUint<M>) {
+pub fn withdraw(&mut self, token: &TokenId<M>, amount: &BigUint<M>) {
     let new_balance = &self.balance_of(token) - amount;
     self.balances.put(token, &new_balance); // Leaves zero entries!
 }
@@ -169,7 +199,7 @@ pub fn withdraw(&mut self, token: &TokenIdentifier<M>, amount: &BigUint<M>) {
 ### 3. Using Only ManagedVec (No Map)
 ```rust
 // WRONG — O(N) lookup for every balance check
-pub fn balance_of(&self, token: &TokenIdentifier<M>) -> BigUint<M> {
+pub fn balance_of(&self, token: &TokenId<M>) -> BigUint<M> {
     for (i, t) in self.tokens.iter().enumerate() {
         if t == token { return self.amounts.get(i); }
     }

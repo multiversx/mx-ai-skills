@@ -153,7 +153,7 @@ pub const PPM: u64 = 1_000_000;                  // 100% = 1_000_000 (parts per 
 ### Using proportion() for Fees
 
 ```rust
-use multiversx_sc::imports::*;
+multiversx_sc::imports!();
 
 pub const PERCENT_BASE_POINTS: u64 = 100_000;
 
@@ -240,6 +240,32 @@ pub trait SharedMathModule {
 | Repeated small operations to drain value | Minimum amounts + half-up on indices |
 | Precision loss across conversions | Use highest needed precision for intermediate math |
 | Exploiting truncation in fee calculations | Always round fees UP (in protocol's favor) |
+
+## Bad/Good Examples
+
+### Bad
+```rust
+// DON'T: Divide before multiply — loses precision
+let shares = (&amount / &total_supply) * &total_shares; // Truncates to 0 for small amounts!
+```
+
+### Good
+```rust
+// DO: Multiply first, then divide to preserve precision
+let shares = (&amount * &total_shares) / &total_supply;
+```
+
+### Bad
+```rust
+// DON'T: Hardcode decimal assumptions — tokens can have 0-18 decimals
+let one_token = BigUint::from(10u64).pow(18); // Assumes 18 decimals!
+```
+
+### Good
+```rust
+// DO: Fetch decimals from token properties or pass as parameter
+let one_token = BigUint::from(10u64).pow(token_decimals as u32);
+```
 
 ## Anti-Patterns
 

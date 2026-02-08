@@ -160,7 +160,7 @@ pub trait EventsModule {
     fn deposit_event(
         &self,
         #[indexed] caller: &ManagedAddress,
-        #[indexed] token: &TokenIdentifier,
+        #[indexed] token: &TokenId,
         amount: &BigUint,
     );
 
@@ -168,7 +168,7 @@ pub trait EventsModule {
     fn withdraw_event(
         &self,
         #[indexed] caller: &ManagedAddress,
-        #[indexed] token: &TokenIdentifier,
+        #[indexed] token: &TokenId,
         amount: &BigUint,
     );
 }
@@ -181,12 +181,12 @@ Centralize all input validation:
 ```rust
 #[multiversx_sc::module]
 pub trait ValidationModule: crate::storage::StorageModule {
-    fn validate_payment(&self, payment: &EgldOrEsdtTokenPayment<Self::Api>) {
+    fn validate_payment(&self, payment: &Payment<Self::Api>) {
         self.require_token_supported(&payment.token_identifier);
-        self.require_amount_positive(&payment.amount);
+        self.require_amount_positive(payment.amount.as_big_uint());
     }
 
-    fn require_token_supported(&self, token: &EgldOrEsdtTokenIdentifier) {
+    fn require_token_supported(&self, token: &TokenId<Self::Api>) {
         require!(self.supported_tokens().contains(token), ERROR_NOT_SUPPORTED);
     }
 
@@ -232,6 +232,49 @@ edition = "2024"
 
 [dependencies.multiversx-sc]
 version = "0.64.0"
+```
+
+## SDK Standard Modules (`multiversx-sc-modules`)
+
+Reusable modules provided by the SDK. Import in `Cargo.toml` and inherit in your contract trait.
+
+```toml
+[dependencies.multiversx-sc-modules]
+version = "0.64.0"
+```
+
+| Module | Purpose | Import Path |
+|---|---|---|
+| `only_admin` | Admin-only access control (owner can add/remove admins) | `multiversx_sc_modules::only_admin` |
+| `pause` | Pausable contract pattern (`#[endpoint] pause / unpause`) | `multiversx_sc_modules::pause` |
+| `default_issue_callbacks` | Standard ESDT token issue/set-role callbacks | `multiversx_sc_modules::default_issue_callbacks` |
+| `esdt` | Token issuance, minting, burning via unified `issue_token` | `multiversx_sc_modules::esdt` |
+| `governance` | DAO proposals, voting, and execution | `multiversx_sc_modules::governance` |
+| `bonding_curve` | Token pricing with bonding curve formulas | `multiversx_sc_modules::bonding_curve` |
+| `token_merge` | NFT/SFT merging and splitting | `multiversx_sc_modules::token_merge` |
+| `subscription` | Recurring payment subscriptions | `multiversx_sc_modules::subscription` |
+| `staking` | Basic staking logic with rewards | `multiversx_sc_modules::staking` |
+| `features` | Feature flags for contract capabilities | `multiversx_sc_modules::features` |
+| `users` | User ID mapping (address to numeric ID) | `multiversx_sc_modules::users` |
+| `ongoing_operation` | Long-running operation checkpointing | `multiversx_sc_modules::ongoing_operation` |
+| `claim_developer_rewards` | Claim accumulated developer rewards | `multiversx_sc_modules::claim_developer_rewards` |
+| `dns` | MultiversX DNS herotag registration | `multiversx_sc_modules::dns` |
+
+Usage example:
+```rust
+#[multiversx_sc::contract]
+pub trait MyContract:
+    multiversx_sc_modules::only_admin::OnlyAdminModule
+    + multiversx_sc_modules::pause::PauseModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+{
+    #[endpoint]
+    fn admin_action(&self) {
+        self.require_caller_is_admin();
+        self.require_not_paused();
+        // ...
+    }
+}
 ```
 
 ## Naming Conventions

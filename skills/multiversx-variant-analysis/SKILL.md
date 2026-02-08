@@ -364,6 +364,8 @@ fn stake(&self) {
 
 **Pattern: Missing amount > 0 check on payable endpoint**
 
+> **Note**: With SDK v0.64+ Payment type, `amount` is `NonZeroBigUint` — the `> 0` check is redundant for typed payments. The pattern below applies to older SDK versions or raw `call_value()` usage.
+
 **Search:**
 ```bash
 grep -rn "#\[payable" src/ | cut -d: -f1 | sort -u | while read file; do

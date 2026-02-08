@@ -288,13 +288,29 @@ fn register(&self) {
 ### Missing Payment Validation
 Does a payable endpoint verify what it receives?
 
+### Bad
 ```rust
-// VULNERABLE: Accepts any token
+// DON'T: Accept any token without validation — attacker sends worthless tokens
 #[payable]
 #[endpoint]
 fn stake(&self) {
     let payment = self.call_value().single();
-    self.staked().update(|s| *s += payment.amount.as_big_uint());  // Fake tokens accepted!
+    self.staked().update(|s| *s += payment.amount.as_big_uint()); // Fake tokens accepted!
+}
+```
+
+### Good
+```rust
+// DO: Validate token identity and optionally enforce minimum amount
+#[payable]
+#[endpoint]
+fn stake(&self) {
+    let payment = self.call_value().single();
+    require!(
+        payment.token_identifier == self.staking_token().get(),
+        "Wrong token"
+    );
+    self.staked().update(|s| *s += payment.amount.as_big_uint());
 }
 ```
 

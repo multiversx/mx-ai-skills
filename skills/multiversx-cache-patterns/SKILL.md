@@ -15,7 +15,7 @@ description: Gas-optimized cache patterns for MultiversX smart contracts using D
 The core pattern: load state into a struct on entry, mutate in memory, commit on scope exit via `Drop`.
 
 ```rust
-use multiversx_sc::imports::*;
+multiversx_sc::imports!();
 use multiversx_sc::derive_imports::*;
 
 pub struct StorageCache<'a, C>
@@ -194,6 +194,33 @@ fn good_async(&self) {
 }
 ```
 
+### Bad — Holding Cache Across Async Boundary
+```rust
+// DON'T: Cache is never dropped — writes are silently lost
+fn bad(&self) {
+    let mut cache = StorageCache::new(self);
+    cache.balance += &amount;
+    self.tx().to(&other).typed(Proxy).call()
+        .callback(self.callbacks().on_done())
+        .async_call_and_exit(); // Execution stops — drop() never runs!
+}
+```
+
+### Good — Clone/Scope Before Async
+```rust
+// DO: Scope the cache so drop() fires before the async call
+fn good(&self) {
+    {
+        let mut cache = StorageCache::new(self);
+        cache.balance += &amount;
+    } // drop() fires here — writes committed to storage
+
+    self.tx().to(&other).typed(Proxy).call()
+        .callback(self.callbacks().on_done())
+        .async_call_and_exit();
+}
+```
+
 ### 2. Forgetting Fields in Drop
 ```rust
 // WRONG - forgot to write back field_c
@@ -220,7 +247,7 @@ impl<C> Drop for Cache<'_, C> {
 
 ```rust
 multiversx_sc::imports!();
-multiversx_sc::derive_imports!();
+use multiversx_sc::derive_imports::*;
 
 pub struct StorageCache<'a, C>
 where

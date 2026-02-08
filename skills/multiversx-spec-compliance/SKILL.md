@@ -82,14 +82,16 @@ For each claim, locate the relevant code:
 // Claim C1: Min stake 1000 EGLD
 // Location: src/stake.rs:45
 
-const MIN_STAKE: u64 = 1000_000000000000000000u64;  // 1000 EGLD in wei
+const MIN_STAKE_EGLD: u64 = 1000;  // 1000 EGLD (whole units)
+const DECIMALS: u32 = 18;
 
 #[payable("EGLD")]
 #[endpoint]
 fn stake(&self) {
     let payment = self.call_value().egld();
+    let min_stake_wei = BigUint::from(MIN_STAKE_EGLD) * BigUint::from(10u64).pow(DECIMALS);
     require!(
-        *payment >= BigUint::from(MIN_STAKE),
+        *payment >= min_stake_wei,
         "Minimum stake is 1000 EGLD"  // ← Implements C1
     );
     // ...

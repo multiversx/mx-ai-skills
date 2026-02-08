@@ -51,7 +51,7 @@ fn deploy_child(
 
     // Deploy from template
     let new_address = self.tx()
-        .typed(child_proxy::ChildProxy)
+        .typed(child_proxy::ChildProxy) // ChildProxy generated from child contract's #[multiversx_sc::proxy]
         .init(init_arg_a, init_arg_b)
         .from_source(template)
         .code_metadata(metadata)
@@ -127,13 +127,15 @@ fn upgrade_child(&self, child_id: ManagedBuffer) {
 
     self.tx()
         .to(child_address)
-        .typed(child_proxy::ChildProxy)
+        .typed(child_proxy::ChildProxy) // ChildProxy generated from child contract's #[multiversx_sc::proxy]
         .upgrade()
         .code_metadata(metadata)
         .from_source(self.template_address().get())
         .upgrade_async_call_and_exit();
 }
 ```
+
+> **Note**: When the child contract proxy is not available (e.g., template-based deployment from external code), use `raw_deploy()` instead of `typed()` for deployment.
 
 ## Template Management
 

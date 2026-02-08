@@ -35,7 +35,7 @@ You want to lend tokens to a contract, let it execute arbitrary logic, and guara
 #[endpoint(atomicOperation)]
 fn atomic_operation(
     &self,
-    asset: TokenIdentifier,
+    asset: TokenId,
     amount: BigUint,
     target_contract: ManagedAddress,
     callback_endpoint: ManagedBuffer,
@@ -120,6 +120,37 @@ fn require_valid_endpoint(&self, endpoint: &ManagedBuffer<Self::Api>) {
 ```
 
 **Why**: Built-in functions (token transfers, ESDT operations) could redirect tokens without executing the expected callback, bypassing repayment logic.
+
+## Reentrancy Guard Examples
+
+### Bad
+```rust
+// DON'T: No reentrancy guard — malicious callback re-enters and borrows again
+#[endpoint(flashLoan)]
+fn flash_loan(&self, asset: TokenId, amount: BigUint, target: ManagedAddress) {
+    let balance_before = self.blockchain().get_sc_balance(&asset.clone().into(), 0);
+    self.tx().to(&target).raw_call("execute").single_esdt(&asset, 0, &amount).sync_call();
+    let balance_after = self.blockchain().get_sc_balance(&asset.into(), 0);
+    require!(balance_after >= balance_before, "Not repaid"); // Bypassed by re-entry!
+}
+```
+
+### Good
+```rust
+// DO: Set reentrancy guard before send, clear after verification
+#[endpoint(flashLoan)]
+fn flash_loan(&self, asset: TokenId, amount: BigUint, target: ManagedAddress) {
+    self.require_not_ongoing(); // Blocks nested calls
+    self.operation_ongoing().set(true);
+
+    let balance_before = self.blockchain().get_sc_balance(&asset.clone().into(), 0);
+    self.tx().to(&target).raw_call("execute").single_esdt(&asset, 0, &amount).sync_call();
+    let balance_after = self.blockchain().get_sc_balance(&asset.into(), 0);
+    require!(balance_after >= balance_before, "Not repaid");
+
+    self.operation_ongoing().set(false);
+}
+```
 
 ## Anti-Patterns
 

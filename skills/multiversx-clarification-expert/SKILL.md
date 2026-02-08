@@ -76,63 +76,30 @@ When choices have significant implications, explain the consequences.
 
 ## Analysis Categories
 
-### 1. Scope Definition
+### 1. Scope & Environment
 | Question | Why It Matters |
 |----------|----------------|
-| Full audit or specific module? | Determines depth vs breadth |
+| Full audit or specific module? | Depth vs breadth |
 | New code or upgrade review? | Upgrade reviews need storage migration focus |
-| Time-boxed or thorough? | Sets expectation for coverage |
-
-### 2. Environment Context
-| Question | Why It Matters |
-|----------|----------------|
 | Mainnet, Devnet, or Sovereign Chain? | Different security requirements |
-| Existing deployment or new? | Upgrade compatibility concerns |
 | Integration with other contracts? | Cross-contract interaction risks |
 
-### 3. Risk Profile
+### 2. Risk & Technical Profile
 | Question | Why It Matters |
 |----------|----------------|
 | TVL expectations? | High value = higher attacker incentive |
 | User base: public or restricted? | Public = larger attack surface |
 | Upgradeable or immutable? | Affects fix deployment strategy |
-
-### 4. Technical Stack
-| Question | Why It Matters |
-|----------|----------------|
-| Standard `multiversx-sc` or custom modules? | Custom code needs deeper review |
-| Any `unsafe` blocks? | Requires manual memory safety verification |
-| External dependencies? | Supply chain risk assessment |
+| Custom modules or `unsafe` blocks? | Needs deeper review |
+| External dependencies? | Supply chain risk |
 
 ## MultiversX-Specific Clarifications
 
-### Token Standards
-```
-When user says "add a token", clarify:
-- Fungible ESDT (standard fungible token)
-- Non-Fungible Token (NFT) - unique items
-- Semi-Fungible Token (SFT) - multiple of same nonce
-- Meta-ESDT - fungible with metadata
-```
+When user says... ask to clarify:
 
-### Storage Patterns
-```
-When user says "store user data", clarify:
-- Per-user data: SingleValueMapper with address key
-- Enumerable users: MapMapper or SetMapper
-- Ordered data: VecMapper or LinkedListMapper
-- Unique items: UnorderedSetMapper
-```
-
-### Access Control
-```
-When user says "admin only", clarify:
-- Single owner (blockchain owner)
-- Single admin (stored address)
-- Multi-sig requirement
-- Role-based (multiple permission levels)
-- Time-locked operations
-```
+- **"add a token"**: Fungible ESDT, NFT, SFT, or Meta-ESDT?
+- **"store user data"**: Per-user (`SingleValueMapper` + address key), enumerable (`MapMapper`/`SetMapper`), ordered (`VecMapper`/`LinkedListMapper`), or unique (`UnorderedSetMapper`)?
+- **"admin only"**: Single owner, stored admin address, multi-sig, role-based, or time-locked?
 
 ## Question Templates
 

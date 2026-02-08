@@ -83,6 +83,24 @@ OOG can leave cross-shard transactions in partial states.
 5. Callback triggered with error
 ```
 
+### Bad
+```rust
+// DON'T: Skip gas reservation for callbacks — OOG in callback loses state
+self.tx().to(&other).typed(Proxy).call()
+    .callback(self.callbacks().on_result())
+    .async_call_and_exit(); // No gas reserved for callback!
+```
+
+### Good
+```rust
+// DO: Always reserve explicit gas for callbacks
+self.tx().to(&other).typed(Proxy).call()
+    .gas(50_000_000)
+    .callback(self.callbacks().on_result())
+    .gas_for_callback(10_000_000) // Ensures callback can execute
+    .async_call_and_exit();
+```
+
 ### The Solution
 ```rust
 // Always reserve enough gas for callbacks
@@ -96,7 +114,7 @@ fn safe_cross_shard(&self) {
         .function()
         .gas(50_000_000)
         .callback(self.callbacks().handle_result())
-        .with_extra_gas_for_callback(CALLBACK_GAS)
+        .gas_for_callback(CALLBACK_GAS)
         .async_call_and_exit();
 }
 ```
@@ -316,19 +334,19 @@ self.tx().to(&recipient).payment(&payments).transfer();
 ### The Sharp Edge
 `MapMapper` stores `4*N + 1` storage entries, making it very expensive.
 
-### The Problem
+### Bad
 ```rust
+// DON'T: Use MapMapper for per-user data when you don't need iteration
 // For 1000 users, this creates 4001 storage entries!
 #[storage_mapper("balances")]
 fn balances(&self) -> MapMapper<ManagedAddress, BigUint>;
 ```
 
-### The Solution
+### Good
 ```rust
-// Use SingleValueMapper with address key when you don't need to iterate
+// DO: Use SingleValueMapper with address key — 1 entry per user
 #[storage_mapper("balance")]
 fn balance(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
-
 // Only use MapMapper when you MUST iterate over all entries
 ```
 

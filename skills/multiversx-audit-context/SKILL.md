@@ -14,29 +14,11 @@ Rapidly build a comprehensive mental model of a MultiversX codebase before divin
 - Mapping attack surface for penetration testing
 - Preparing for code review sessions
 
-## 1. Reconnaissance
+## 1. Reconnaissance Checklist
 
-### Identify the Core
-Locate where critical logic and value flows reside:
-
-- **Smart Contracts**: Look for `#[multiversx_sc::contract]`, `#[payable("*")]`, and `impl` blocks
-- **Value Handlers**: Functions that move EGLD/ESDT tokens
-- **Access Control**: Owner-only functions, whitelists, role systems
-
-### Identify Externalities
-Map external dependencies and interactions:
-
-- **Cross-Contract Calls**: Which other contracts does this interact with?
-- **Hardcoded Addresses**: Look for `sc:` smart contract literals
-- **Oracle Dependencies**: External data sources the contract relies on
-- **Bridge Contracts**: Any cross-chain or cross-shard communication
-
-### Identify Documentation
-Gather all available context:
-
-- **Standard Files**: `README.md`, `specs/`, `whitepaper.pdf`
-- **MultiversX Specific**: `mxpy.json` (build config), `multiversx.yaml`, `snippets.sh`
-- **Test Scenarios**: `scenarios/` directory with Mandos tests
+- [ ] **Core logic**: `#[multiversx_sc::contract]`, `#[payable]`, value-moving functions, access control patterns
+- [ ] **Externalities**: cross-contract calls, hardcoded addresses (`sc:` literals), oracle dependencies, bridge contracts
+- [ ] **Documentation**: `README.md`, `specs/`, `sc-config.toml`, `multiversx.yaml`, `snippets.sh`, `scenarios/` tests
 
 ## 2. System Mapping
 
