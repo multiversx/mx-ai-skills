@@ -109,24 +109,30 @@ Output a sequence for each test case:
 
 ---
 
-## 5. Phase 4: Validation & Debugging (The QA Role)
-**Objective:** Verify execution and perform surgical fixes.
+## 5. Phase 4: Self-Healing Validation (The QA Role)
+**Objective:** Verify execution and perform surgical fixes autonomously.
 
-### The Debugging ReAct Loop:
-If `cargo test` fails:
-1. **Observation:** Capture the specific Rust compiler or VM error.
-2. **Hypothesis:** Identify: Path/Import issue, Snippet mismatch, or Logic assertion failure.
-3. **Action:** 
-    - If path error: Use `ls -R` to check workspace layout.
-    - If snippet mismatch: Re-run Phase 1 Snippet Generation.
-    - If logic error: Refine parameters or gas limit.
-4. **Conclusion:** Document the failure in the manifest and re-verify. (Max 3 iterations).
+### The Self-Healing Loop:
+When `cargo test` fails, you entered the **Repair Mode**.
+
+1.  **Capture**: Save the failure output to a log file.
+2.  **Diagnose**:
+    -   Call `mvx-debugger`.
+    -   Provide failure logs.
+    -   Request: "Identify the root cause and location of this chain simulator test failure."
+3.  **Heal**:
+    -   Call `mvx-fixer`.
+    -   Provide the `mvx-debugger` report.
+    -   Request: "Fix the identified issue in the interactor or the contract."
+4.  **Verify**:
+    -   Re-run `cargo test --features chain-simulator-tests`.
+    -   **Constraint**: Maximum 3 repair cycles.
 
 ### Execution:
-1. **Start Environment**: `sc-meta cs start`
-2. **Execute Tests**: `cargo test --features chain-simulator-tests`
-3. **Teardown**: `sc-meta cs stop`
-4. **Cleanup**: Ensure no dangling processes; the `sc-meta cs stop` command should handle the container state.
+1.  **Start Environment**: `sc-meta cs start`
+2.  **Execute Tests**: `cargo test --features chain-simulator-tests`
+3.  **Teardown**: `sc-meta cs stop` (Always ensure cleanup)
+4.  **Cleanup**: Ensure no dangling processes.
 
 ---
 
