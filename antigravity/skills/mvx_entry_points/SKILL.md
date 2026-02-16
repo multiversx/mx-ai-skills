@@ -42,3 +42,36 @@ Functions receiving money.
 ## 4. Specific Attacks
 - **Privilege Escalation**: Is a sensitive endpoint accidentally public?
 - **DoS**: public endpoint inserting into UnorderedSetMapper (unbounded growth).
+
+## Output Format
+
+### Entry Point Inventory
+```
+| # | Endpoint | Type | Payable | Access Control | Risk Level | Storage Touched | Location |
+|---|----------|------|---------|----------------|------------|-----------------|----------|
+| 1 | stake | endpoint | EGLD | Public | Critical | user_stake, total_staked | src/lib.rs:42 |
+| 2 | claim | endpoint | No | Public | High | user_rewards | src/lib.rs:87 |
+| 3 | set_fee | endpoint | No | #[only_owner] | Medium | fee_percent | src/admin.rs:12 |
+| 4 | get_balance | view | No | Public | Low | - | src/views.rs:5 |
+| 5 | init | init | No | Deploy only | Critical | all mappers | src/lib.rs:1 |
+```
+
+### Attack Surface Summary
+```
+Total endpoints: [N]
+  Critical (payable/init/upgrade): [N]
+  High (state-changing, public): [N]
+  Medium (state-changing, restricted): [N]
+  Low (views): [N]
+
+Unchecked payable endpoints: [list or "none"]
+Public state-changing without access control: [list or "none"]
+Endpoints missing from Mandos scenarios: [list or "none"]
+```
+
+## Completion Criteria
+Entry point analysis is complete when:
+1. Every `#[endpoint]`, `#[view]`, `#[payable]`, `#[init]`, `#[upgrade]`, and `#[callback]` is in the inventory table.
+2. Every entry has a risk classification.
+3. Attack Surface Summary is filled.
+4. Any endpoint that is payable without token validation is flagged.
