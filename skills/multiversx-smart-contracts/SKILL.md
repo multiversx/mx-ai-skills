@@ -68,10 +68,10 @@ edition = "2024"
 path = "src/lib.rs"
 
 [dependencies.multiversx-sc]
-version = "0.64.0"
+version = "0.65.0"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "0.64.0"
+version = "0.65.0"
 ```
 
 ## Basic Contract Structure
@@ -1132,7 +1132,7 @@ Before completion, verify:
 - [ ] `#[multiversx_sc::contract]` on main trait
 - [ ] `#[init]` function defined for deployment
 - [ ] Storage mappers use appropriate types (avoid MapMapper unless iterating)
-- [ ] Payment endpoints have `#[payable(...)]` annotation
+- [ ] Payment endpoints have `#[payable]` annotation
 - [ ] Error messages use `require!` macro
 - [ ] Contract builds successfully with `sc-meta all build`
 - [ ] Output files exist: `output/<name>.wasm` and `output/<name>.abi.json`
