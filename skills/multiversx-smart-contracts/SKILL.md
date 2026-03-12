@@ -725,7 +725,7 @@ const MY_TOKEN: TestTokenId = TestTokenId::new("MYTOKEN-123456");
 const NFT_ID: TestTokenId = TestTokenId::new("NFT-123456");
 
 // Duration/fee constants – declare with the typed wrapper directly, not as bare u64
-const COOLDOWN_TIME: DurationMillis = DurationMillis::new(86_400);
+const COOLDOWN_TIME: DurationMillis = DurationMillis::new(86_400_000);
 const LEVEL_UP_FEE: u64 = 1_000_000_000_000_000;
 
 // Binary constants – declare as typed arrays, never inline in tx calls
@@ -1151,16 +1151,21 @@ world.check_account(SC_ADDRESS)
 ```rust
 struct MyTestState {
     world: ScenarioWorld,
-    oracles: Vec<Address>,
+    oracles: Vec<TestAddress>,
 }
 
 impl MyTestState {
     fn new() -> Self {
+        const ORACLE_1: TestAddress = TestAddress::new("oracle-1");
+        const ORACLE_2: TestAddress = TestAddress::new("oracle-2");
+
         let mut world = world();
         world.account(OWNER_ADDRESS).nonce(1);
+        world.account(ORACLE_1).nonce(1);
+        world.account(ORACLE_2).nonce(1);
         world.current_block().block_timestamp_seconds(TimestampSeconds::new(100));
         world.new_address(OWNER_ADDRESS, 1, SC_ADDRESS);
-        Self { world, oracles: Vec::new() }
+        Self { world, oracles: vec![ORACLE_1, ORACLE_2] }
     }
 
     fn deploy(&mut self) -> &mut Self {

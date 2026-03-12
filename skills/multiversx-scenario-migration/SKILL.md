@@ -89,11 +89,16 @@ fn complex_scenario() {
 // .returns(ExpectValue(ScenarioValueRaw::new("nested:str:EGLD-000000|u64:0|biguint:1000")))
 
 // ✅ After replacement – use a typed value
-.returns(ExpectValue(Payment::try_new(TOKEN_ID, 0, 1000u32)))
+.returns(ExpectValue(Payment::try_new(TOKEN_ID, 0, 1000u32).unwrap()))
 
 // ✅ Or use a query-based assertion instead
-let deposit = world.query().to(SC_ADDRESS).typed(my_proxy::MyProxy)
-    .get_deposit(&key).returns(ReturnsResultUnmanaged).run();
+let deposit = world
+    .query()
+    .to(SC_ADDRESS)
+    .typed(my_proxy::MyProxy)
+    .get_deposit(&key)
+    .returns(ReturnsResultUnmanaged)
+    .run();
 assert_eq!(deposit.amount, 1000u64);
 ```
 
