@@ -1,38 +1,21 @@
 ---
 name: multiversx-spec-compliance
-description: Verify smart contract implementations match their specifications, whitepapers, and MIP standards. Use when auditing for specification adherence, validating tokenomics implementations, or checking MIP compliance.
+description: "Verify that MultiversX smart contract implementations match their whitepapers, technical specifications, and MIP standards by extracting claims, mapping them to code, and documenting deviations. Use when auditing contracts against design documents, validating tokenomics formulas, checking MIP-2/MIP-3/MIP-4 compliance, or reviewing upgrade proposals for specification drift."
 ---
 
-# Specification Compliance Verification
+# MultiversX Specification Compliance Verification
 
-Ensure that MultiversX smart contract implementations match their intended design as specified in whitepapers, technical specifications, and MultiversX Improvement Proposals (MIPs). This skill bridges the gap between documentation and code.
+Systematically verifies that MultiversX smart contract code matches its intended design as documented in whitepapers, technical specifications, and MultiversX Improvement Proposals (MIPs). The agent extracts testable claims from specs, maps each claim to implementing code, verifies correctness, and produces a deviation report.
 
-## When to Use
+## Workflow
 
-- Auditing contracts against their whitepapers
-- Verifying tokenomics implementations
-- Checking MIP standard compliance
-- Validating economic formulas and constraints
-- Reviewing upgrade proposals against specs
-
-## 1. Verification Process Overview
-
-### Inputs Required
-
-| Input | Description | Source |
-|-------|-------------|--------|
-| Code | Rust implementation | `src/*.rs` |
-| Specification | Design document | `whitepaper.pdf`, `README.md`, `specs/` |
-| MIP Reference | Standard requirements | MultiversX MIPs |
-
-### Process Flow
-
-```
-1. Extract Claims → List all requirements from spec
-2. Map to Code   → Find implementing code for each claim
-3. Verify Logic  → Confirm implementation matches spec
-4. Document      → Record findings and deviations
-```
+1. **Collect inputs** — gather the Rust source (`src/*.rs`), specification documents (whitepaper, README, `specs/`), and relevant MIP references.
+2. **Extract claims** — identify all MUST/MUST NOT/SHOULD/SHALL/MAY requirements from the spec (Section 2).
+3. **Map claims to code** — locate the implementing function and line for each claim (Section 3).
+4. **Verify logic** — confirm formulas, constraints, and state transitions match the spec (Section 4).
+5. **Check MIP compliance** — validate against MIP-2, MIP-3, MIP-4 requirements as applicable (Section 5).
+6. **Verify tokenomics** — audit supply caps, inflation, burn rates, and distribution against documented economics (Section 6).
+7. **Document deviations** — categorize findings by severity and produce a compliance report (Sections 7–8).
 
 ## 2. Claim Extraction
 
