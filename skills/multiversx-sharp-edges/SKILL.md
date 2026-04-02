@@ -1,19 +1,18 @@
 ---
 name: multiversx-sharp-edges
-description: Catalog of non-obvious behaviors, gotchas, and platform-specific quirks in MultiversX that often lead to bugs. Use when debugging unexpected behavior, reviewing code for subtle issues, or learning platform-specific pitfalls.
+description: "Catalog of 16 non-obvious behaviors and platform-specific gotchas in MultiversX that frequently cause bugs — covering async callback reverts, gas limits, storage mapper memory models, token decimal precision, upgradeability pitfalls, VecMapper 1-indexing, EGLD+ESDT multi-transfers, NonZeroBigUint conversions, BackTransfers accumulation, and more. Use when debugging unexpected MultiversX contract behavior, reviewing code for subtle platform-specific issues, onboarding new developers to MultiversX, or preparing for security audits."
 ---
 
 # MultiversX Sharp Edges
 
-A catalog of non-obvious behaviors, "gotchas," and platform-specific quirks that frequently lead to bugs in MultiversX smart contracts and dApps. Understanding these sharp edges is essential for writing correct code.
+A catalog of 16 non-obvious behaviors, gotchas, and platform-specific quirks that frequently lead to bugs in MultiversX smart contracts and dApps. Each entry follows a consistent Problem → Solution pattern with code examples.
 
-## When to Use
+## Workflow
 
-- Debugging unexpected contract behavior
-- Reviewing code for subtle platform-specific issues
-- Onboarding to MultiversX development
-- Checking if a bug might be caused by a known quirk
-- Preparing for security audits
+1. **Identify the symptom** — match unexpected behavior against the quick reference table (bottom of this file).
+2. **Read the relevant sharp edge** — understand the root cause and why it is non-obvious.
+3. **Apply the solution pattern** — use the provided code examples to fix or prevent the issue.
+4. **Cross-reference during audits** — walk through each sharp edge as a checklist item when reviewing MultiversX contracts.
 
 ## 1. Async Callbacks & Reverts
 

@@ -1,19 +1,18 @@
 ---
 name: multiversx-security-audit
-description: Complete security audit methodology for MultiversX smart contracts. Covers context building, entry point analysis, static analysis patterns, and automated Semgrep scanning. Use when performing security audits, code reviews, or setting up automated vulnerability detection.
+description: "End-to-end security audit methodology for MultiversX smart contracts covering four phases: context building and threat modeling, entry point enumeration and risk classification, manual static analysis with grep patterns for Rust and Go, and automated Semgrep rule creation. Use when starting a new security audit engagement, performing security code reviews, mapping contract attack surfaces, setting up automated vulnerability scanning, or training new MultiversX security reviewers."
 ---
 
 # MultiversX Security Audit Methodology
 
-A sequential workflow for auditing MultiversX smart contracts, from initial reconnaissance through automated scanning.
+A four-phase sequential workflow for auditing MultiversX smart contracts — from initial reconnaissance and threat modeling through entry point analysis, manual static analysis, and automated Semgrep scanning. Each phase produces documented artifacts that feed into the next.
 
-## When to Use
+## Workflow
 
-- Starting a new security audit engagement
-- Performing security code reviews
-- Setting up automated vulnerability scanning
-- Mapping attack surface for penetration testing
-- Training new security reviewers
+1. **Phase 1: Context Building** — build a mental model of the codebase: roles, assets, state, dependencies, and initial threat model (Section 1).
+2. **Phase 2: Entry Point Analysis** — enumerate all `#[endpoint]`, `#[view]`, `#[payable]`, `#[callback]`, `#[init]`, and `#[upgrade]` functions; classify by risk level (Section 2).
+3. **Phase 3: Static Analysis** — run manual grep patterns for Rust smart contracts and Go protocol code to find unsafe arithmetic, missing access control, reentrancy, and DoS vectors (Section 3).
+4. **Phase 4: Automated Scanning** — create and run custom Semgrep rules targeting MultiversX-specific vulnerability patterns (Section 4).
 
 ---
 

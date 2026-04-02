@@ -1,13 +1,21 @@
 ---
 name: multiversx-project-architecture
-description: Production-grade project structure patterns for MultiversX smart contracts. Use when starting a new contract project, refactoring an existing one, or building multi-contract systems with shared code.
+description: "Production-grade project structure patterns for MultiversX smart contracts including single-contract layouts, multi-contract workspace organization, lib.rs trait composition, module patterns for errors/events/validation, SDK standard modules (only_admin, pause, esdt, governance), and naming conventions. Use when starting a new MultiversX contract project, refactoring an existing codebase into modules, building multi-contract systems with shared crates, or choosing between storage mapper types."
 ---
 
 # MultiversX Project Architecture
 
-Production-tested folder structures and module composition patterns for MultiversX contracts.
+Production-tested folder structures and module composition patterns for MultiversX smart contracts. Covers single-contract layouts, multi-contract workspaces with shared crates, idiomatic module patterns, and SDK standard modules.
 
-## Single Contract Structure
+## Workflow
+
+1. **Choose project layout** — single contract (up to ~1000 LOC) or multi-contract workspace (Section 1–2).
+2. **Structure lib.rs** — compose module traits without business logic in the main file (Section 3).
+3. **Apply module patterns** — use the errors, events, and validation patterns for consistent code organization (Sections 4–6).
+4. **Leverage SDK modules** — import `multiversx-sc-modules` for standard capabilities like pause, admin, and ESDT management (Section 7).
+5. **Follow naming conventions** — apply the naming table for crates, files, storage keys, and endpoints (Section 8).
+
+## 1. Single Contract Structure
 
 For contracts up to ~1000 lines of business logic:
 
