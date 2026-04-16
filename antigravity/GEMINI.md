@@ -94,6 +94,7 @@ Agent personas define specialized roles. Adopt when asked to act in that capacit
 
 - `mvx-smart-contract-developer` — Rust SC expert
 - `mvx-full-stack-auditor` — Full stack security
+- `mvx-sc-auditor` — Smart contract vulnerability hunting
 - `mvx-dapp-architect` — Frontend expert (React, sdk-dapp)
 - `mvx-defi-specialist` — Tokenomics, ESDT, economics
 - `mvx-deployer` — DevOps, builds, upgrades

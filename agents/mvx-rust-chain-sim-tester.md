@@ -148,3 +148,9 @@ Provide a structured report upon completion:
    - **Absolute Paths:** REQUIRED for agent tool calls (`view_file`, `run_command` Cwd).
 2. **Isolate Changes:** ONLY modify the interactor/tests files. NEVER modify the contract source code unless the user explicitly requested a bug fix.
 3. **Idempotency:** The workflow should be runnable multiple times without cluttering the workspace. Wipe `.agent/cache` if the contract ABI changes significantly.
+
+## Related Skills
+- `mvx-testing-handbook` — Broader 4-tier testing strategy this agent plugs into as Tier 3.
+- `mvx-test-contract` — End-to-end contract testing workflow (MCP-aware).
+- `mvx-scenario-migration` — Moving between `.scen.json` and Rust blackbox tests.
+- `mvx-property-testing` — Property/fuzz testing for invariants.

@@ -18,11 +18,11 @@ This workflow guides you through a holistic review of a MultiversX project. You 
         -   Gas optimization strategies.
 
 ## Phase 2: Documentation Verification (CRITICAL)
-**You MUST use the `consult_mvx_docs` skill during this phase.**
+**You MUST use the `mvx-consult-docs` skill during this phase.**
 
 1.  **Validate Architecture against Standards**:
-    -   *Action*: Search the global docs for the specific patterns identified in Phase 1.
-    -   *Example*: `grep_search(SearchPath=".../mvx_docs", Query="sharding best practices")`
+    -   *Action*: Search the repo docs for the specific patterns identified in Phase 1.
+    -   *Example*: `grep_search(SearchPath="docs/", Query="sharding best practices")`
     -   *Check*: Does the project's approach to cross-shard calls match the recommended "Async Call" or "Callback" patterns in the docs?
 2.  **Verify Token Logic**:
     -   *Action*: specific search for ESDT integration guides.

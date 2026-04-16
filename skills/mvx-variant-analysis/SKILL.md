@@ -24,4 +24,9 @@ Once you find a bug (e.g., "Missing usage of `checked_add` in function A"):
     - Variant Search: Check ALL `#[callback]` functions.
 
 ## 3. Automation
-- Use `mvx_static_analysis` (Semgrep) to create a temporary rule for the variant.
+- Use `mvx-static-analysis-patterns` (Semgrep) to create a temporary rule for the variant.
+- Also see `mvx-semgrep-creator` for rule authoring.
+
+## See also
+- `mvx-code-analysis` Section 3 — Worked variant-analysis examples and abstraction patterns.
+- `mvx-sc-audit` Phase 6 — Variant analysis is mandatory after any finding.

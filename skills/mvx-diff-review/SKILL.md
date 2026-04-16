@@ -25,3 +25,8 @@ When reviewing a diff between `v1` and `v2` of a Smart Contract:
 1.  **Generate Diff**: `git diff v1..v2`.
 2.  **Filter Noise**: Ignore formatting/style changes.
 3.  **Trace Data**: Follow the flow of changed data structures.
+
+## See also
+- `mvx-code-analysis` — Section 1 expands on storage-layout compat, init-on-upgrade, and breaking-change detection.
+- `mvx-upgrade-flow` — Deployment-side of the same problem (pre/post-upgrade verification).
+- `mvx-sc-audit` Phase 2 — How differential review plugs into a full audit.

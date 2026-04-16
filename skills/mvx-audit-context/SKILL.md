@@ -83,3 +83,8 @@ Context building is complete when:
 3. All external dependencies are identified.
 4. Threat summary identifies at least one risk per attacker profile.
 5. Scope determination is filled (drives which auditor phases apply).
+
+## Next Steps
+- `mvx-entry-points` — Enumerate and risk-rank every public function.
+- `mvx-audit-onchain` — If the contract is already deployed, fetch live state before static review.
+- `mvx-sc-audit` — Drive the full audit using this context as input to Phase 1.

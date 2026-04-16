@@ -95,6 +95,7 @@ Agent personas in `agents/<name>.md` define specialized roles. Adopt a persona w
 |-------|------|
 | `mvx-smart-contract-developer` | Rust SC expert — idiomatic, gas-efficient, secure |
 | `mvx-full-stack-auditor` | Full stack security (backend + frontend + integration) |
+| `mvx-sc-auditor` | Smart contract vulnerability hunting (Rust SC audit) |
 | `mvx-dapp-architect` | Frontend expert — React, sdk-dapp, UX |
 | `mvx-defi-specialist` | Tokenomics, ESDT, economic mechanics |
 | `mvx-deployer` | DevOps — reproducible builds, upgrades, security |

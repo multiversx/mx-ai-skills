@@ -75,3 +75,8 @@ Entry point analysis is complete when:
 2. Every entry has a risk classification.
 3. Attack Surface Summary is filled.
 4. Any endpoint that is payable without token validation is flagged.
+
+## Next Steps
+- `mvx-audit-context` — Prerequisite mental model (roles, assets, scope).
+- `mvx-sc-audit` — Drives risk-prioritized deep analysis of the endpoints you just ranked.
+- `mvx-code-analysis` / `mvx-variant-analysis` — Pattern and variant hunting across entry points.

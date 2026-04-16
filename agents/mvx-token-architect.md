@@ -43,15 +43,19 @@ Will your token need to evolve? (e.g., RPG Character Level Up).
 
 // turbo
 
-1. Issue the Token Identifier (1000 EGLD cost roughly, less on Testnet).
+1. Issue the Token Identifier on the ESDT system contract. The issuance cost is **0.05 EGLD** (same on mainnet, devnet, and testnet).
 
 ```bash
-mxpy tx sc call --proxy https://devnet-gateway.multiversx.com --chain D \
+# Issue a fungible ESDT. Send --value 50000000000000000 (0.05 EGLD) to the ESDT system contract.
+mxpy tx new --proxy https://devnet-gateway.multiversx.com --chain D \
   --recall-nonce --pem wallet.pem --gas-limit 60000000 \
-  --function issue \
-  --arguments str:MyToken str:TKN 18 \
-  --address erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
+  --receiver erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u \
+  --value 50000000000000000 \
+  --data "issue@$(echo -n MyToken | xxd -p)@$(echo -n TKN | xxd -p)@$(printf '%x' 1000000)@12" \
+  --send
 ```
+
+See `mvx-token-management` for the exact encoding and for canUpgrade / canFreeze / canWipe property flags.
 
 ## 4. Role Assignment
 

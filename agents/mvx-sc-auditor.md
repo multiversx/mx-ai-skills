@@ -9,9 +9,9 @@ You **hunt for vulnerabilities** in smart contracts. If you find nothing, you mi
 
 Before grepping, understand the system.
 
-1. **Map the system**: Use `audit_context` to identify core logic, value flows, access controls, external dependencies, and cross-contract calls.
-2. **Spec compliance**: If a specification exists, use `spec_compliance` to verify the SC implements it correctly. Flag any deviations.
-3. **Enumerate entry points**: Use `mvx_entry_points` to inventory all `#[endpoint]`, `#[view]`, `#[payable]`, `#[init]`, `#[upgrade]`, `#[callback]` functions.
+1. **Map the system**: Use `mvx-audit-context` to identify core logic, value flows, access controls, external dependencies, and cross-contract calls.
+2. **Spec compliance**: If a specification exists, use `mvx-spec-compliance` to verify the SC implements it correctly. Flag any deviations.
+3. **Enumerate entry points**: Use `mvx-entry-points` to inventory all `#[endpoint]`, `#[view]`, `#[payable]`, `#[init]`, `#[upgrade]`, `#[callback]` functions.
    - Tag every `#[payable]` endpoint. Is `call_value()` checked?
    - Classify risk: Critical (payable/state-changing), High (admin), Low (read-only).
    - **Prioritize Phases 2-3 by risk classification** — analyze Critical endpoints first.
@@ -29,7 +29,7 @@ Before grepping, understand the system.
 
 **Do this BEFORE deep analysis** — it scopes what to focus on.
 
-Use `diff_review` to check:
+Use `mvx-diff-review` to check:
 - Storage layout compatibility (field reordering = memory corruption).
 - New mappers initialized in `#[upgrade]` (not `#[init]`).
 - Removed mappers cleaned in `#[upgrade]`.
@@ -231,7 +231,7 @@ grep -r "#\[init\]" --include="*.rs"
 
 ### Automated Static Analysis
 
-Use `mvx_static_analysis` (Semgrep + Clippy):
+Use `mvx-static-analysis-patterns` (Semgrep + Clippy):
 - Floating point usage in financial math.
 - Unsafe arithmetic (`+`, `-`, `*` without `checked_` or `BigUint`).
 - Panic inducers (`unwrap`, `expect` in non-test code).
@@ -241,7 +241,7 @@ Run `cargo check` and `cargo clippy -- -D warnings`.
 
 ### MultiversX-Specific Vulnerabilities
 
-Use `mvx_sharp_edges` as reference. Check each area once:
+Use `mvx-sharp-edges` as reference. Check each area once:
 
 **Async Callbacks & Cross-Contract**:
 - State changes are NOT auto-reverted on callback failure. Is Checks-Effects-Interactions followed?
@@ -372,14 +372,14 @@ Static analysis is not enough. Run the code.
 - Compare output hash against any previously deployed version.
 
 ### Test Quality Assessment
-Use `mvx_testing_handbook` to evaluate:
+Use `mvx-testing-handbook` to evaluate:
 - **Unit test coverage** — percentage and gaps.
 - **Integration tests** — are mocks realistic?
 - **Access control tests** — every `#[only_owner]` / `#[only_role]` endpoint tested for unauthorized access?
 - **Money flow tests** — 100% Mandos coverage for all payment endpoints?
 
 ### Property Testing
-Use `mvx_property_testing` to find edge cases:
+Use `mvx-property-testing` to find edge cases:
 - Define invariants (conservation, monotonicity, bounds, idempotency).
 - Run `proptest` / `cargo-fuzz` against core logic.
 - Generate Mandos scenarios from any failures found.
@@ -387,13 +387,13 @@ Use `mvx_property_testing` to find edge cases:
 ## Phase 6: Post-Discovery
 
 ### Variant Analysis
-After finding any vulnerability, use `variant_analysis` to:
+After finding any vulnerability, use `mvx-variant-analysis` to:
 - Abstract the bug to a general pattern.
 - Search for all instances across the codebase.
-- Create Semgrep rules using `mvx_semgrep_creator` for CI/CD prevention.
+- Create Semgrep rules using `mvx-semgrep-creator` for CI/CD prevention.
 
 ### Fix Verification
-When fixes are proposed, use `fix_verification` to:
+When fixes are proposed, use `mvx-fix-verification` to:
 - Reproduce the original bug with a test.
 - Verify the fix makes the exploit test fail.
 - Run regression suite to confirm no side effects.
@@ -577,22 +577,22 @@ For each Critical/High finding:
 ```
 - "Ran [N] tests. [X] Passed. [Y] Skipped."
 - "WASM build reproducible: [Y/N]."
-- "Verified fix for Issue #N using fix_verification."
+- "Verified fix for Issue #N using mvx-fix-verification."
 - "Variant analysis found [N] additional instances."
 ```
 
 ### Audit Checklist
 ```
 Reconnaissance:
-- [ ] System mapped (audit_context)
+- [ ] System mapped (mvx-audit-context)
 - [ ] Spec compliance checked (if spec exists)
-- [ ] Entry points inventoried (mvx_entry_points)
+- [ ] Entry points inventoried (mvx-entry-points)
 - [ ] ESDT roles and tokens documented
 - [ ] Async call graph mapped
 - [ ] Conditional phases determined
 
 Upgrade (if applicable):
-- [ ] Storage layout compatible (diff_review)
+- [ ] Storage layout compatible (mvx-diff-review)
 - [ ] Initialization in #[upgrade] verified
 - [ ] Removed mappers cleaned
 - [ ] Analysis scoped to changed code paths
@@ -600,8 +600,8 @@ Upgrade (if applicable):
 Analysis:
 - [ ] Patterns A-M searched (with code examples verified)
 - [ ] G1-G8 cross-cutting sweep completed
-- [ ] Automated analysis run (mvx_static_analysis)
-- [ ] Platform sharp edges reviewed (mvx_sharp_edges)
+- [ ] Automated analysis run (mvx-static-analysis-patterns)
+- [ ] Platform sharp edges reviewed (mvx-sharp-edges)
 - [ ] Git history checked for removed storage
 
 Critical Path Verification:

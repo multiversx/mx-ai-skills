@@ -179,7 +179,7 @@ fn bad_async(&self) {
 
 // CORRECT - manually drop cache before async call
 fn good_async(&self) {
-    let deposit = self.call_value().egld_value().clone_value();
+    let deposit = self.call_value().egld().clone_value();
 
     {
         let mut cache = StorageCache::new(self);

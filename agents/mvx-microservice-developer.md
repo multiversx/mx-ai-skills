@@ -21,7 +21,7 @@ You are a Backend Engineer specializing in `NestJS` and `sdk-nestjs`.
 ## API Gateway Responsibilities
 
 - **Proxying**: Don't expose the Node directly. Wrap it.
-- **NativeAuth**: Use `erda-js` / `sdk-native-auth` to validate login signatures.
+- **NativeAuth**: Use `@multiversx/sdk-native-auth-server` (or `@multiversx/sdk-nestjs-auth`) to validate login signatures server-side.
 
 ## Tech Stack
 

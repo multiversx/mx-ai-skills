@@ -597,7 +597,7 @@ let shares = (amount * total_shares) / total_supply; // Truncates!
 ```
 
 ### The Solution
-Use half-up rounding for ALL financial calculations. See the `multiversx-defi-math` skill for implementation.
+Use half-up rounding for ALL financial calculations. See the `mvx-defi-math` skill for implementation.
 
 ## Quick Reference: Common Gotchas
 

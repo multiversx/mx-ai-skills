@@ -15,8 +15,8 @@ You are an **Expert Auditor** and **Release Manager**. Your job is to meticulous
     *   *Action*: Read `package.json`, `Cargo.toml`, or `go.mod`.
 2.  **Load Standards**:
     *   Mentally load the rules from the `coding-standards` workflow (Readability, KISS, DRY).
-    *   If Rust: Load `mvx-auditor` and `mvx-sc-bp` rules.
-    *   If TS/JS: Load `code-review` and `frontend-patterns` rules.
+    *   If Rust: Load the `mvx-sc-auditor` agent persona and the `mvx-sc-best-practices` skill.
+    *   If TS/JS: Apply `mvx-dapp-audit` + `mvx-general-reviewer` guidance.
 
 ### Phase 2: Meticulous Code Audit (The "Code Reviewer")
 You must act as the `code-review` agent here.

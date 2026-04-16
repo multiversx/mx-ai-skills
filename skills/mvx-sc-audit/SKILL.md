@@ -442,7 +442,7 @@ Style issues, typos, inefficient patterns with no security impact. Missing tests
 5. [ ] **Existing Mitigations**: Are there other checks preventing this?
 
 ### Common False Positive Patterns to AVOID:
-- CEI violations that aren't actually exploitable (no reentrancy vector in MultiversX).
+- CEI violations that aren't actually exploitable. Note: MultiversX does have a real reentrancy vector via `sync_call()` / legacy `execute_on_dest_context(...)` — these synchronously re-enter the caller. Plain `self.send()` value transfers and `register_promise()` async calls cannot re-enter in the same transaction. Flag CEI violations ONLY when there is a concrete synchronous contract call between the "effects" and a subsequent state read/write on the same storage.
 - "Missing slippage protection" when caller provides min_amount.
 - Access control concerns for legitimately public functions.
 - "Unbounded iteration" on lists that are practically bounded by design.
@@ -578,22 +578,24 @@ For each Critical/High finding:
 ```
 - "Ran [N] tests. [X] Passed. [Y] Skipped."
 - "WASM build reproducible: [Y/N]."
-- "Verified fix for Issue #N using fix_verification."
+- "Verified fix for Issue #N using mvx-fix-verification."
 - "Variant analysis found [N] additional instances."
 ```
 
 ### Audit Checklist
 ```
 Reconnaissance:
-- [ ] System mapped (audit_context)
+- [ ] System mapped (mvx-audit-context)
 - [ ] Spec compliance checked (if spec exists)
-- [ ] Entry points inventoried (mvx_entry_points)
+- [ ] Entry points inventoried (mvx-entry-points)
 - [ ] ESDT roles and tokens documented
 - [ ] Async call graph mapped
 - [ ] Conditional phases determined
+- [ ] On-chain state consulted if deployed (mvx-audit-onchain)
+- [ ] dApp / frontend in scope? Run mvx-dapp-audit if yes.
 
 Upgrade (if applicable):
-- [ ] Storage layout compatible (diff_review)
+- [ ] Storage layout compatible (mvx-diff-review)
 - [ ] Initialization in #[upgrade] verified
 - [ ] Removed mappers cleaned
 - [ ] Analysis scoped to changed code paths
@@ -601,8 +603,9 @@ Upgrade (if applicable):
 Analysis:
 - [ ] Patterns A-M searched (with code examples verified)
 - [ ] G1-G8 cross-cutting sweep completed
-- [ ] Automated analysis run (mvx_static_analysis)
-- [ ] Platform sharp edges reviewed (mvx_sharp_edges)
+- [ ] Automated analysis run (mvx-static-analysis-patterns)
+- [ ] Platform sharp edges reviewed (mvx-sharp-edges)
+- [ ] Crypto / constant-time reviewed if applicable (mvx-crypto-verification, mvx-constant-time)
 - [ ] Git history checked for removed storage
 
 Critical Path Verification:
@@ -612,18 +615,14 @@ Critical Path Verification:
 - [ ] Time gap scenarios checked
 - [ ] Permissionless endpoint abuse checked
 - [ ] Early period blocking analyzed
+- [ ] Removal impact quantified: [K periods x users]
 
 DeFi (if applicable):
 - [ ] Composability risks checked
-- [ ] Flash loan resistance verified
+- [ ] Flash loan resistance verified (mvx-flash-loan-patterns)
 - [ ] Oracle safety verified
 - [ ] Governance (timelock, pause) verified
 - [ ] Invariant testing run
-
-Time & Removal:
-- [ ] Early period blocking analyzed
-- [ ] Functions affected: [list]
-- [ ] Removal impact quantified: [K periods x users]
 
 Dynamic Verification:
 - [ ] cargo test executed: [pass/fail/skip]
@@ -739,7 +738,7 @@ Detailed analysis methodology per entry point category.
 Functions receiving value require the most scrutiny.
 
 ```rust
-#[payable]
+#[payable("*")]
 #[endpoint]
 fn deposit(&self) {
     // MUST CHECK:
@@ -748,11 +747,12 @@ fn deposit(&self) {
     // 3. Correct handling of multi-token transfers
     // 4. State updates before external calls
 
-    let payment = self.call_value().single();
+    let payment = self.call_value().single_esdt();
     require!(
         payment.token_identifier == self.accepted_token().get(),
         "Wrong token"
     );
+    require!(payment.amount > 0u32, "Zero deposit");
 }
 ```
 
@@ -875,26 +875,27 @@ fn set_admin(&self, new_admin: ManagedAddress) {
 **Bad:**
 ```rust
 // DON'T: Accept any token without validation — attacker sends worthless tokens
-#[payable]
+#[payable("*")]
 #[endpoint]
 fn stake(&self) {
-    let payment = self.call_value().single();
-    self.staked().update(|s| *s += payment.amount.as_big_uint()); // Fake tokens accepted!
+    let payment = self.call_value().single_esdt();
+    self.staked().update(|s| *s += &payment.amount); // Fake tokens accepted!
 }
 ```
 
 **Good:**
 ```rust
 // DO: Validate token identity
-#[payable]
+#[payable("*")]
 #[endpoint]
 fn stake(&self) {
-    let payment = self.call_value().single();
+    let payment = self.call_value().single_esdt();
     require!(
         payment.token_identifier == self.staking_token().get(),
         "Wrong token"
     );
-    self.staked().update(|s| *s += payment.amount.as_big_uint());
+    require!(payment.amount > 0u32, "Zero stake");
+    self.staked().update(|s| *s += &payment.amount);
 }
 ```
 
@@ -946,9 +947,11 @@ grep -rn "\.collect()" src/
 #### Token ID Validation
 ```bash
 grep -rn "call_value()" src/
-grep -rn "\.single()" src/
-grep -rn "\.all()" src/
-grep -rn "\.single_optional()" src/
+grep -rn "\.single_esdt()" src/
+grep -rn "\.single_fungible_esdt()" src/
+grep -rn "\.egld()" src/
+grep -rn "\.egld_or_single_esdt()" src/
+grep -rn "\.all_transfers()\|\.all_esdt_transfers()" src/
 ```
 For each: verify token ID checked, nonce validated (for NFT/SFT), amount validated.
 
@@ -1149,29 +1152,38 @@ rules:
 ```
 
 ### Reentrancy Pattern
+
+Only synchronous contract-to-contract calls can re-enter on MultiversX. Target
+`sync_call()` and the legacy `execute_on_dest_context(...)` — NOT plain
+`self.send()` / `self.tx().to(...).transfer()` (those are value transfers to an
+account and cannot re-enter in the same transaction).
+
 ```yaml
 rules:
-  - id: mvx-reentrancy-risk
+  - id: mvx-sync-call-reentrancy-risk
     languages: [rust]
-    message: "External call before state update. Follow Checks-Effects-Interactions."
+    message: "Synchronous cross-contract call before state update. Apply Checks-Effects-Interactions: update storage BEFORE sync_call()."
     severity: ERROR
     patterns:
-      - pattern: |
-          fn $FUNC(&self, $...PARAMS) {
-              ...
-              self.send().$SEND_METHOD(...);
-              ...
-              self.$STORAGE().set(...);
-              ...
-          }
-      - pattern: |
-          fn $FUNC(&self, $...PARAMS) {
-              ...
-              self.tx().to(...).transfer();
-              ...
-              self.$STORAGE().set(...);
-              ...
-          }
+      - pattern-either:
+          - pattern: |
+              fn $FUNC(&self, $...PARAMS) {
+                  ...
+                  $PROXY.sync_call();
+                  ...
+                  self.$STORAGE().set(...);
+                  ...
+              }
+          - pattern: |
+              fn $FUNC(&self, $...PARAMS) {
+                  ...
+                  self.send_raw().execute_on_dest_context(...);
+                  ...
+                  self.$STORAGE().set(...);
+                  ...
+              }
+    metadata:
+      cwe: "CWE-841: Improper Enforcement of Behavioral Workflow"
 ```
 
 ### Running Semgrep
@@ -1231,6 +1243,6 @@ semgrep-rules/
 | Panic inducers | `unwrap()\|expect(` | High |
 | Unbounded iteration | `\.iter()` | High |
 | Missing access control | `#[endpoint]` without `#[only_owner]` | High |
-| Token validation | `call_value().single()` without token ID require | High |
+| Token validation | `call_value().single_esdt()` without `token_identifier == expected` check | High |
 | Callback assumptions | `#[callback]` without error handling | Medium |
 | Raw arithmetic | `+ \| - \| *` on u64 | Medium |

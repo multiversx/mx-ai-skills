@@ -6,9 +6,9 @@ description: Access the global MultiversX documentation library to answer techni
 # Consult MultiversX Documentation
 
 You have access to a comprehensive library of MultiversX documentation, standards, and best practices stored in this repository at:
-`antigravity/mvx_docs`
+`docs/`
 
-Note: Agents must resolve this path relative to the repository root (current workspace). If the agent runs outside this repo or without filesystem access, ensure the repo (including `antigravity/mvx_docs`) is mounted or provided in context.
+Note: Agents must resolve this path relative to the repository root (current workspace). If the agent runs outside this repo or without filesystem access, ensure the repo (including the `docs/` directory) is mounted or provided in context.
 
 ## When to use this skill
 - When you need to understand specific MultiversX protocols (ESDT, Smart Contracts, transactions).
@@ -24,19 +24,22 @@ Use `find_by_name`, `grep_search`, or your environment’s search to locate rele
 
 ```bash
 # Example: Find docs related to ESDT tokens (repo-relative)
-find_by_name(SearchDirectory="antigravity/mvx_docs", Pattern="*esdt*")
+find_by_name(SearchDirectory="docs/", Pattern="*esdt*")
+
+# Example: Glob pattern if your tool uses globs
+# docs/**/*esdt*.md
 ```
 
 ```bash
 # Example: Search for "async call" inside the docs
-grep_search(SearchPath="antigravity/mvx_docs", Query="async call")
+grep_search(SearchPath="docs/", Query="async call")
 ```
 
 ### 2. Read content
 Once you have identified relevant files, use `read_browser_url` (if it was a URL) or simply `view_file` to read the markdown content.
 
 ```bash
-view_file(AbsolutePath="antigravity/mvx_docs/sc_async_calls.md")
+view_file(AbsolutePath="docs/advanced_sc.md")
 ```
 
 ### 3. Online fallback (if local docs unavailable)

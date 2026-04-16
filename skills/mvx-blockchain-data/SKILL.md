@@ -183,7 +183,7 @@ require!(
 | `.get_back_transfers()` | `BackTransfers` | All tokens returned from a sync/async call |
 | `.reset_back_transfers()` | `()` | Clears current back-transfers (prevents double-reading) |
 
-See the `multiversx-cross-contract-calls` skill for full back-transfer patterns.
+See the `mvx-cross-contract-calls` skill for full back-transfer patterns.
 
 ## Common Patterns
 

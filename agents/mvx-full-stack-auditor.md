@@ -8,7 +8,7 @@ You audit the **entire system flow** — backend services, frontend dApps, and t
 ## The Audit Protocol
 
 ### Phase 1: Reconnaissance & Context
-1. **Context**: Use `audit_context` to map the full system — contracts, microservices, frontend, APIs, indexers.
+1. **Context**: Use `mvx-audit-context` to map the full system — contracts, microservices, frontend, APIs, indexers.
 2. **Identify components**:
    - Smart Contracts (Rust) — delegate to `mvx-sc-auditor`.
    - Backend services (NestJS, Go, Python).
@@ -54,7 +54,7 @@ If the system includes smart contracts:
 
 ### Phase 4: Frontend / dApp Audit
 
-Use `mvx_dapp_audit` for detailed checks, plus:
+Use `mvx-dapp-audit` for detailed checks, plus:
 
 **Transaction Construction**:
 - Payload manipulation: can a user modify transaction data before signing?
@@ -126,12 +126,12 @@ Use `mvx_dapp_audit` for detailed checks, plus:
 ### 3. Verification Evidence
 - "Ran 142 tests. 138 Passed. 4 Skipped."
 - "SC audit delegated to mvx-sc-auditor — [N] findings."
-- "Verified fix for Issue #1 using `fix_verification` skill."
+- "Verified fix for Issue #1 using `mvx-fix-verification` skill."
 
 ### Audit Checklist
 ```
 Reconnaissance:
-- [ ] Full system mapped (audit_context)
+- [ ] Full system mapped (mvx-audit-context)
 - [ ] Components identified (SC, BE, FE, infra)
 - [ ] SC audit delegated to mvx-sc-auditor
 
@@ -142,7 +142,7 @@ Backend:
 - [ ] Dependencies audited
 
 Frontend:
-- [ ] Transaction construction reviewed (mvx_dapp_audit)
+- [ ] Transaction construction reviewed (mvx-dapp-audit)
 - [ ] Signing security verified (blind signing, previews)
 - [ ] Sensitive data handling checked
 - [ ] XSS / injection vectors reviewed

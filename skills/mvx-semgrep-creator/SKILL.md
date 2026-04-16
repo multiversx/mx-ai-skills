@@ -30,7 +30,7 @@ rules:
 ```
 
 ## 3. Workflow
-1.  **Identify Pattern**: See `mvx_variant_analysis`.
+1.  **Identify Pattern**: See `mvx-variant-analysis`.
 2.  **Write Rule**: Use the template.
 3.  **Test**: Run on the codebase using `semgrep --config rules.yaml .`
 4.  **Refine**: Reduce false positives.

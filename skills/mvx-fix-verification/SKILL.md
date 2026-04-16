@@ -20,5 +20,10 @@ This skill helps you rigorous verify that a reported vulnerability has been elim
 ## 3. Deliverable
 A "Verification Report" stating:
 - Commit ID of the fix.
-- Test case used to verify.
+- Test case used to verify (prefer a Rust blackbox test using `ScenarioWorld`; `.scen.json` scenarios are still accepted).
 - Confirmation of regression suite success.
+
+## See also
+- `mvx-code-analysis` — Fix verification as Section 2 with worked examples (exploit scenario JSON + recommendation template).
+- `mvx-variant-analysis` — Run after any verified fix to find similar bugs elsewhere.
+- `mvx-testing-handbook` — Writing the blackbox test used to lock the fix in.

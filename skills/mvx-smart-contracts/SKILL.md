@@ -434,16 +434,18 @@ let legacy = self.call_value().egld_or_single_esdt();
 
 ### Bad
 ```rust
-// DON'T: Use BigUint for payment amounts — allows zero-value transfers
-let amount: BigUint = self.call_value().egld_value().clone_value();
-let payment = EsdtTokenPayment::new(token, 0, amount); // Legacy type, no zero check
+// DON'T: Read EGLD with the deprecated egld_value() helper, or construct payments
+// without a zero-amount check
+let amount: BigUint = self.call_value().egld_value().clone_value(); // DEPRECATED API
+let payment = EsdtTokenPayment::new(token, 0, amount); // No zero check
 ```
 
 ### Good
 ```rust
-// DO: Use NonZeroBigUint and Payment — zero is rejected at the type level
-let payment = self.call_value().single(); // Returns Payment with NonZeroBigUint
-// payment.amount is NonZeroBigUint — guaranteed non-zero
+// DO: Use the current call-value API, then assert non-zero explicitly
+let amount: BigUint = self.call_value().egld().clone_value();
+require!(amount > 0u32, "Zero EGLD payment");
+// For ESDT, prefer call_value().single_esdt() — returns EsdtTokenPayment
 ```
 
 ### Bad
@@ -1796,7 +1798,7 @@ self.tx().to(&recipient).payment(&payments).transfer();
 For production-grade contracts, these additional skills cover advanced patterns:
 
 ### Gas-Optimized Storage Caching
-Use **Drop-based caches** to batch storage reads on entry and writes on exit. See the `multiversx-cache-patterns` skill.
+Use **Drop-based caches** to batch storage reads on entry and writes on exit. See the `mvx-cache-patterns` skill.
 
 ```rust
 // Load all state once, mutate in memory, commit on scope exit
@@ -1807,7 +1809,7 @@ cache.fee_reserve += &fee;
 ```
 
 ### Cross-Contract Storage Reads
-Read another contract's storage directly without async calls using `#[storage_mapper_from_address]`. See the `multiversx-cross-contract-storage` skill.
+Read another contract's storage directly without async calls using `#[storage_mapper_from_address]`. See the `mvx-cross-contract-storage` skill.
 
 ```rust
 #[storage_mapper_from_address("reserve")]
@@ -1819,7 +1821,7 @@ fn external_reserve(
 ```
 
 ### Production Project Structure
-For multi-module contracts, follow the modular architecture pattern. See the `multiversx-project-architecture` skill.
+For multi-module contracts, follow the modular architecture pattern. See the `mvx-project-architecture` skill.
 
 ```
 src/
@@ -1835,12 +1837,18 @@ src/
 ```
 
 ### DeFi Financial Math
-For lending, staking, or DEX contracts, use half-up rounding and standardized precision levels. See the `multiversx-defi-math` skill.
+For lending, staking, or DEX contracts, use half-up rounding and standardized precision levels. See the `mvx-defi-math` skill.
 
 ### Additional Specialized Skills
-- `multiversx-flash-loan-patterns` — Flash loan implementation with security guards
-- `multiversx-factory-manager` — Deploy and manage child contracts
-- `multiversx-vault-pattern` — In-memory token tracking for multi-step operations
+- `mvx-flash-loan-patterns` — Flash loan implementation with security guards
+- `mvx-factory-manager` — Deploy and manage child contracts
+- `mvx-vault-pattern` — In-memory token tracking for multi-step operations
+- `mvx-sc-best-practices` — Final-review checklist
+- `mvx-sharp-edges` — Platform-specific pitfalls
+- `mvx-payment-handling` — ESDT payment patterns
+- `mvx-cross-contract-calls` — Async/sync/promises calls
+- `mvx-blockchain-data` — `self.blockchain()` API reference
+- `mvx-crypto-verification` — Cryptographic primitives
 
 ## Documentation Links
 
