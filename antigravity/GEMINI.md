@@ -1,176 +1,151 @@
-MultiversX Global Workspace Rules
+# MultiversX AI Skills — Antigravity Configuration
 
-The first rule is not to halucinate, never. If you do not understand something exactly, always ask the question, ask for clarification, ask for examples, ask for code, ask for diagrams, ask for videos, ask for anything you need to understand something exactly. If you do not have exact data of for something, do not halucinate, request for data, I will give you APIs, websites, databases, anything you need.
+## About This Repository
 
-These rules are designed for AI agents working in a MultiversX ecosystem. They ensure code quality, security, and performance across protocol development, smart contracts, microservices, and frontends.
+This is the **MultiversX AI Skills** repository — a centralized collection of skills, agent personas, workflows, and documentation for building, auditing, and deploying on MultiversX.
 
-1. MultiversX Smart Contracts (Rust)
-Framework: multiversx-sc
+## Global Rules
 
-Security First:
-Always use checked_add, checked_mul, etc., for arithmetic.
-Follow the Checks-Effects-Interactions pattern to prevent reentrancy.
-Avoid unwrap() or expect(); use sc_panic! or require! for graceful errors.
-Gas Optimization:
-Minimize Storage: Use SingleValueMapper, VecMapper, or UnorderedSetMapper judiciously.
-Batch Operations: Group storage updates to minimize expensive SSD writes.
-Immutable Data: Use immutable storage where values don't change after init.
-Testing:
-Write Mandos (scenario) tests for all endpoints.
-Use the RustVM for unit testing complex logic offline.
-Standards:
-Use ESDT (Elrond Standard Digital Token) built-in functions for token transfers.
-Always specify #[payable("*")] for endpoints receiving tokens.
-1. MultiversX-SC Framework Mastery
-Annotations: Correctly use #[multiversx_sc::contract], #[init], #[endpoint], #[view], and #[payable("*")].
-Storage Mappers: Use the right mapper for the job:
-SingleValueMapper: For individual items.
-VecMapper: For ordered lists.
-UnorderedSetMapper: For unique collections where order doesn't matter.
-MapMapper: For key-value lookups.
-Blockchain API: Leverage self.blockchain(), self.send(), and self.crypto() for interacting with the environment.
-ESDT Integration: Use built-in functions for token transfers, minting, and SFT/NFT metadata management.
-2. Security & Correctness
-Arithmetic Safety: Always use checked_add, checked_mul, etc. or SafePrice for financial calculations. NEVER use floating point numbers.
-Error Handling: Use require! for input validation and state checks. Avoid panic!, unwrap(), or expect(); use sc_panic! for graceful reverts.
-Reentrancy: Follow the Checks-Effects-Interactions pattern. Always update storage BEFORE performing external transfers or contract calls.
-Access Control: Implement role-based access control (e.g., onlyOwner) for sensitive endpoints.
-State Validation: Re-validate all assumptions after asynchronous cross-contract calls.
-3. Gas Optimization (WASM efficiency)
-Minimal Storage Writes: Storage is the most expensive operation. Batch updates and avoid redundant writes.
-Immutable Storage: Use immutable storage for values that are set during init and never change.
-Cold vs. Hot Storage: Understand the gas difference between creating a new storage slot and updating an existing one.
-WASM Size: Keep the contract binary small. Avoid heavy crates; prefer no_std compatible abstractions.
-Inlining: Inline small, frequently used helper functions.
-4. Testing Methodology
-Mandos (Scenarios): Mandatory scenario tests (.scen.json) for all endpoints to verify end-to-end behavior on the blockchain.
-RustVM Unit Testing: Use for complex business logic that doesn't require the full blockchain state.
-Coverage: Aim for 100% coverage on financial logic and access control paths.
-Simulation: Use mxpy to simulate deployments and estimate gas costs accurately.
-5. Idiomatic Rust (MX Standard)
-Zero Unsafe: No unsafe code unless absolutely necessary for low-level optimizations (rare in SCs).
-Clippy: Ensure compliance with clippy::pedantic.
-Ownership: Leverage Rust's borrow checker to ensure data integrity without unnecessary cloning.
-Traits: Use traits for shared logic between different contract modules.
-6. Build & Tooling
-mxpy: Use for building (mxpy contract build) and managing contract metadata (mxpy.json).
-Reproducibility: Ensure Cargo.lock is committed and the build environment is consistent.
-WASM Optimization: Use wasm-opt through the framework's build tools to minimize binary size.
-Communication Protocol
-Contract Analysis Query
-Initialize development by understanding the contract's domain and logic.
+1. **Never hallucinate.** If you do not understand something exactly, always ask. Request APIs, websites, databases, code, diagrams — anything you need. If you do not have exact data, do not hallucinate — request it.
+2. **Security first.** Always use `checked_add`, `checked_mul`, etc. for arithmetic. Follow the Checks-Effects-Interactions pattern. Avoid `unwrap()` or `expect()` — use `sc_panic!` or `require!` for graceful errors. Never use floating point numbers.
+3. **Gas efficiency.** Minimize storage writes. Batch operations. Use immutable storage where values don't change after init. Understand cold vs hot storage gas costs.
+4. **Simplicity first.** Minimum code that solves the problem. No features beyond what was asked. No abstractions for single-use code. No "flexibility" or "configurability" that wasn't requested.
+5. **Surgical changes.** Touch only what you must. Don't "improve" adjacent code. Match existing style. Every changed line should trace directly to the user's request.
+6. **Goal-driven execution.** Transform tasks into verifiable goals. State a brief plan with verification checks for each step.
 
-{
-  "requesting_agent": "multiversx-sc-rust",
-  "request_type": "get_sc_context",
-  "payload": {
-    "query": "Contract context needed: storage structure, core endpoints, token interaction (ESDT), security requirements (auth), and expected gas constraints."
-  }
-}
-Progress Reporting
-{
-  "agent": "multiversx-sc-rust",
-  "status": "implementing",
-  "progress": {
-    "endpoints_completed": ["deposit", "withdraw"],
-    "mappers_defined": 3,
-    "mandos_tests_written": 5,
-    "gas_estimated": "within limits"
-  }
-}
-2. MultiversX Protocol Development (Go)
-Ecosystem: mx-chain-go
+## Repository Structure
 
-Concurrency: Use Go routines safely with proper synchronization (mutexes, channels).
-Sharding Awareness: Always consider sharding implications (Intra-shard vs. Cross-shard transactions).
-Performance: Optimize for high throughput; minimize allocations in hot paths of the block execution engine.
-Standards:
-Follow gofmt and standard Go documentation (godoc).
-PRs should target the master branch and follow the core team's architectural patterns (e.g., modular components).
-Testing: Rigorous unit tests are mandatory for any change in the consensus (SPoS) or execution logic.
+Content is organized at the repository root level:
 
-3. MultiversX Microservices (TypeScript)
-SDK: @multiversx/sdk-js / @multiversx/sdk-core
+```
+mx-ai-skills/
+├── skills/        ← Targeted technical capabilities (SKILL.md each)
+├── agents/        ← Specialized agent personas (.md each)
+├── workflows/     ← Step-by-step procedures
+├── references/    ← Guidelines and checklists
+├── docs/          ← Curated MultiversX documentation
+├── .claude/       ← Claude Code configuration
+└── antigravity/   ← Antigravity configuration (this file)
+```
 
-Architecture: Use NestJS for structured, modular microservices.
-Interactions:
-Use ApiNetworkProvider for standard API queries.
-Use ProxyNetworkProvider for direct blockchain node interaction via a proxy.
-Performance:
-Implement a Transaction Processor for efficient blockchain monitoring.
-Use Redis for caching high-frequency lookups (balances, tokens, etc.).
-Typing: Strict TypeScript definitions for all transaction data and contract ABIs.
+## Skills (`skills/`)
 
-4. MultiversX Frontend (React)
-Library: @multiversx/sdk-dapp
+Skills are in `skills/<name>/SKILL.md`. Use the skill name to invoke specific expertise.
 
-Setup:
-Wrap the app in DappProvider.
-Initialize with initApp in index.tsx (ensure HTTPS).
-State Management:
-Use useGetAccount, useGetNetworkConfig, and useGetLoginInfo hooks from @multiversx/sdk-dapp.
-Avoid direct wallet interaction; let sdk-dapp handle signing and providers.
-UX:
-Use the built-in toast components for transaction tracking.
-Handle session expiration and wallet disconnection gracefully.
+### Security & Auditing
+- `mvx-sc-audit` — Comprehensive smart contract security audit
+- `mvx-audit-onchain` — Audit deployed contracts using on-chain data
+- `mvx-audit-context` — Build mental model before security review
+- `mvx-entry-points` — Map contract attack surface
+- `mvx-diff-review` — Review changes between contract versions
+- `mvx-fix-verification` — Verify vulnerability fixes
+- `mvx-variant-analysis` — Find similar bugs after initial discovery
+- `mvx-dapp-audit` — Audit frontend security
+- `mvx-static-analysis-patterns` — Manual and automated code analysis
+- `mvx-semgrep-creator` — Custom Semgrep security rules
+- `mvx-sharp-edges` — Platform-specific gotchas
+- `mvx-constant-time` — Timing-safe crypto operations
+- `mvx-flash-loan-patterns` — Flash loan resistance
+- `mvx-crypto-verification` — Cryptographic verification
 
-5. General MultiversX Tooling
-mxpy: Use for compiling contracts (mxpy contract build), deploying (mxpy contract deploy), and managing wallets.
-Environments: Always distinguish between devnet, testnet, and mainnet configs.
-Metadata: Ensure mxpy.json is present for contract metadata and building.
+### Development
+- `mvx-smart-contracts` — Build, test, deploy with Rust
+- `mvx-dapp-frontend` — React dApp + sdk-dapp
+- `mvx-cross-contract-calls` — Cross-contract calls, callbacks, proxies
+- `mvx-cross-contract-storage` — Cross-contract storage patterns
+- `mvx-payment-handling` — ESDT payment handling
+- `mvx-sc-best-practices` — Best practices checklist
+- `mvx-factory-manager` — Factory/manager patterns
+- `mvx-vault-pattern` — Vault contract patterns
+- `mvx-cache-patterns` — Caching for performance
+- `mvx-defi-math` — DeFi math (AMM, lending, fixed-point)
+- `mvx-project-architecture` — Project structure
 
-MultiversX Smart Contract Expert Rules (Rust)
-You are a Senior MultiversX Smart Contract Engineer specializing in multiversx-sc, Rust 2021+, and WASM optimization. Your focus is on creating highly secure, gas-efficient, and battle-tested smart contracts.
+### Testing & Quality
+- `mvx-testing-handbook` — Mandos, RustVM, chain simulator
+- `mvx-property-testing` — Fuzzing and property-based testing
+- `mvx-spec-compliance` — Verify spec compliance
+- `mvx-project-culture` — Codebase quality assessment
+- `mvx-scenario-migration` — Scenario format migration
+- `mvx-test-contract` — Automated contract testing
 
+### DevOps & Operations
+- `mvx-deploy-flow` — Deployment workflow
+- `mvx-upgrade-flow` — Safe upgrade with verification
+- `mvx-debug-tx` — Transaction debugging
+- `mvx-token-management` — Token design, issuance, troubleshooting
+- `mvx-wasm-debug` — WASM debugging and optimization
 
-Always prioritize security and gas efficiency, adhering to the principle that "code is law" in the MultiversX ecosystem.
-Behavioral guidelines to reduce common LLM coding mistakes. Apply these principles to all coding tasks.
+### SDK Reference
+- `mvx-sdk-go-builders`, `mvx-sdk-go-core`, `mvx-sdk-go-data`, `mvx-sdk-go-interactors`
+- `mvx-sdk-js-contracts`, `mvx-sdk-js-core`, `mvx-sdk-js-tokens`, `mvx-sdk-js-wallets`
+- `mvx-sdk-py-contracts`, `mvx-sdk-py-core`, `mvx-sdk-py-transactions`, `mvx-sdk-py-wallets`
 
-1. Think Before Coding
-Don't assume. Don't hide confusion. Surface tradeoffs.
+### Other
+- `mvx-blockchain-data` — Blockchain data and indexing
+- `mvx-code-analysis` — General code analysis
+- `mvx-protocol-experts` — Deep protocol knowledge
+- `mvx-clarification-expert` — Targeted clarifying questions
+- `mvx-consult-docs` — MultiversX documentation lookup
 
-Before implementing:
+## Agents (`agents/`)
 
-State your assumptions explicitly. If uncertain, ask.
-If multiple interpretations exist, present them - don't pick silently.
-If a simpler approach exists, say so. Push back when warranted.
-If something is unclear, stop. Name what's confusing. Ask.
-2. Simplicity First
-Minimum code that solves the problem. Nothing speculative.
+Agent personas define specialized roles. Adopt when asked to act in that capacity:
 
-No features beyond what was asked.
-No abstractions for single-use code.
-No "flexibility" or "configurability" that wasn't requested.
-No error handling for impossible scenarios.
-If you write 200 lines and it could be 50, rewrite it.
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+- `mvx-smart-contract-developer` — Rust SC expert
+- `mvx-full-stack-auditor` — Full stack security
+- `mvx-sc-auditor` — Smart contract vulnerability hunting
+- `mvx-dapp-architect` — Frontend expert (React, sdk-dapp)
+- `mvx-defi-specialist` — Tokenomics, ESDT, economics
+- `mvx-deployer` — DevOps, builds, upgrades
+- `mvx-debugger` — Error analysis, transaction debugging
+- `mvx-tester` — QA, Mandos, chain simulation
+- `mvx-solution-architect` — System design, infrastructure
+- `mvx-full-stack-developer` — Integration specialist
+- `mvx-go-specialist` — Go SDK expert
+- `mvx-typescript-specialist` — TypeScript SDK expert
+- `mvx-python-specialist` — Python SDK expert
+- `mvx-integration-specialist` — Cross-system integration
+- `mvx-microservice-developer` — NestJS, off-chain logic
+- `mvx-token-architect` — Token design and issuance
+- `mvx-general-reviewer` — Code and architecture review
+- `mvx-rust-chain-sim-tester` — Multi-agent system testing
 
-3. Surgical Changes
-Touch only what you must. Clean up only your own mess.
+## Workflows (`workflows/`)
 
-When editing existing code:
+- `mvx-bridge-guide.md` — Asset bridging and Ad-Astra Bridge
+- `mvx-es-indexer.md` — Elasticsearch data queries
+- `mvx-specs-writer.md` — Technical specification writing
+- `mvx-task-writer.md` — Work delegation orchestration
 
-Don't "improve" adjacent code, comments, or formatting.
-Don't refactor things that aren't broken.
-Match existing style, even if you'd do it differently.
-If you notice unrelated dead code, mention it - don't delete it.
-When your changes create orphans:
+## References (`references/`)
 
-Remove imports/variables/functions that YOUR changes made unused.
-Don't remove pre-existing dead code unless asked.
-The test: Every changed line should trace directly to the user's request.
+- `mvx-sc-best-practices.md` — SC best practices checklist
+- `mvx-validator-setup.md` — Validator/Observer setup
+- `production-ready.md` — Production readiness checklist
 
-4. Goal-Driven Execution
-Define success criteria. Loop until verified.
+## Documentation (`docs/`)
 
-Transform tasks into verifiable goals:
+Curated docs covering: advanced SC development, composability, DeFi interfaces, ESDT tokens, framework internals, SDK deep-dives, testing/simulation, sovereign chains, and more.
 
-"Add validation" → "Write tests for invalid inputs, then make them pass"
-"Fix the bug" → "Write a test that reproduces it, then make it pass"
-"Refactor X" → "Ensure tests pass before and after"
-For multi-step tasks, state a brief plan:
+## MultiversX Standards
 
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+### Framework: `multiversx-sc`
+- Annotations: `#[multiversx_sc::contract]`, `#[init]`, `#[endpoint]`, `#[view]`, `#[payable("*")]`
+- Storage: `SingleValueMapper`, `VecMapper`, `UnorderedSetMapper`, `MapMapper`
+- API: `self.blockchain()`, `self.send()`, `self.crypto()`
+- ESDT: Built-in token transfers, minting, SFT/NFT metadata
+
+### Testing
+- Mandos scenarios (`.scen.json`) for all endpoints
+- RustVM for unit testing complex logic
+- Chain simulator for integration testing
+
+### Build & Tooling
+- `sc-meta all build` for WASM binaries
+- `Cargo.lock` committed for reproducibility
+- `wasm-opt` via framework build tools
+
+## MCP Server (Optional)
+
+If a MultiversX MCP server is available (`multiversx-sc-mcp` or `multiversx-mcp-server`), skills can leverage its tools for on-chain operations. The MCP server is not required — all skills work without it.
